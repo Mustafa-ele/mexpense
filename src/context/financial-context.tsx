@@ -564,20 +564,22 @@ export const FinancialProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         });
       }
     } else if (tx.type === 'transfer') {
-      // 1. Debit Source Account
-      const sourceAcc = tx.fromAccount || tx.account;
-      updatedAccs = updatedAccs.map((acc) => {
-        if (acc.name === sourceAcc) {
-          const diff = tx.amount * multiplier;
-          return {
-            ...acc,
-            balance: acc.balance - diff,
-            todayChange: acc.todayChange - diff,
-            lastUpdated: todayStr
-          };
-        }
-        return acc;
-      });
+      // 1. Debit Source Account (only if Sender is Self)
+      if (tx.person === 'Self') {
+        const sourceAcc = tx.fromAccount || tx.account;
+        updatedAccs = updatedAccs.map((acc) => {
+          if (acc.name === sourceAcc) {
+            const diff = tx.amount * multiplier;
+            return {
+              ...acc,
+              balance: acc.balance - diff,
+              todayChange: acc.todayChange - diff,
+              lastUpdated: todayStr
+            };
+          }
+          return acc;
+        });
+      }
 
       // 2. Debit Sender (if family member)
       if (tx.person !== 'Self') {

@@ -168,18 +168,22 @@ export default function QuickActionModals() {
       return;
     }
 
+    const isInternal = transferFromPerson !== 'Self' && transferToPerson !== 'Self';
+
     const payload = {
       date: trDate,
       person: transferFromPerson,
       category: 'Transfer',
-      account: trSource,
-      paymentMode: 'Net Banking',
+      account: isInternal ? 'Internal' : trSource,
+      paymentMode: isInternal ? 'Internal Shift' : 'Net Banking',
       description: transferToPerson === 'Self' 
         ? `Transferred from ${transferFromPerson} to ${trDest} (${trSource}). ${trDesc}`
+        : isInternal
+        ? `Transferred allowance from ${transferFromPerson} to ${transferToPerson}. ${trDesc}`
         : `Transferred from ${transferFromPerson} to ${transferToPerson} (${trSource}). ${trDesc}`,
       amount: Number(trAmount),
       type: 'transfer' as const,
-      fromAccount: trSource,
+      fromAccount: isInternal ? 'Internal' : trSource,
       toAccount: transferToPerson === 'Self' ? trDest : undefined,
       toPerson: transferToPerson !== 'Self' ? transferToPerson : undefined
     };
@@ -415,15 +419,25 @@ export default function QuickActionModals() {
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-1">
-                    <label className="text-[10px] uppercase font-bold text-slate-450">From Source (Paying Account)</label>
-                    <select value={trSource} onChange={(e) => setTrSource(e.target.value)} className="w-full glass-input bg-transparent">
-                      {accounts.map(acc => <option key={acc.id} value={acc.name}>{acc.name}</option>)}
-                    </select>
-                  </div>
+                  {(transferFromPerson === 'Self' || transferToPerson === 'Self') ? (
+                    <div className="space-y-1 col-span-2 sm:col-span-1">
+                      <label className="text-[10px] uppercase font-bold text-slate-450">From Source (Paying Account)</label>
+                      <select value={trSource} onChange={(e) => setTrSource(e.target.value)} className="w-full glass-input bg-transparent">
+                        {accounts.map(acc => <option key={acc.id} value={acc.name}>{acc.name}</option>)}
+                      </select>
+                    </div>
+                  ) : (
+                    <div className="space-y-1 col-span-2 sm:col-span-1">
+                      <label className="text-[10px] uppercase font-bold text-slate-450">Funding Status</label>
+                      <div className="w-full py-2.5 px-3 bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-250/20 dark:border-emerald-900/30 text-emerald-600 dark:text-emerald-400 font-bold rounded-xl text-center flex items-center justify-center gap-1.5 select-none">
+                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                        <span>Internal Pocket Shift</span>
+                      </div>
+                    </div>
+                  )}
                   
                   {transferToPerson === 'Self' && (
-                    <div className="space-y-1">
+                    <div className="space-y-1 col-span-2 sm:col-span-1">
                       <label className="text-[10px] uppercase font-bold text-slate-450">To Account (Destination)</label>
                       <select value={trDest} onChange={(e) => setTrDest(e.target.value)} className="w-full glass-input bg-transparent">
                         {accounts.map(acc => <option key={acc.id} value={acc.name}>{acc.name}</option>)}
