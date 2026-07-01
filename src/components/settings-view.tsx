@@ -24,8 +24,19 @@ export default function SettingsView() {
     language, 
     setLanguage,
     formatCurrency,
-    resetData
+    resetData,
+    loggedInUser
   } = useFinancials();
+
+  const getInitials = (name: string) => {
+    if (!name) return 'U';
+    const parts = name.trim().split(' ');
+    if (parts.length >= 2) {
+      return (parts[0][0] + parts[1][0]).toUpperCase();
+    }
+    return parts[0].slice(0, 2).toUpperCase();
+  };
+  const initials = getInitials(loggedInUser);
 
   const [emailAlerts, setEmailAlerts] = useState(true);
   const [weeklyDigest, setWeeklyDigest] = useState(false);
@@ -303,10 +314,10 @@ export default function SettingsView() {
         <div className="glass-panel p-6 space-y-6">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-blue-600 to-indigo-600 flex items-center justify-center text-white font-bold text-sm shadow-sm">
-              JD
+              {initials}
             </div>
             <div>
-              <p className="text-xs font-bold text-slate-800 dark:text-white font-sans">John Doe</p>
+              <p className="text-xs font-bold text-slate-800 dark:text-white font-sans">{loggedInUser}</p>
               <p className="text-[10px] text-slate-500 dark:text-slate-450">Super Administrator</p>
             </div>
           </div>

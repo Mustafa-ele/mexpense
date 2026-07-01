@@ -1,6 +1,8 @@
 'use client';
 
 import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
+import { doc, onSnapshot, setDoc } from "firebase/firestore";
+import { db } from "@/lib/firebase";
 
 // Types Definition
 export interface Transaction {
@@ -127,6 +129,10 @@ interface FinancialContextType {
   markNotificationRead: (id: string) => void;
   clearNotifications: () => void;
   resetData: (startFromZero: boolean) => void;
+  isLoggedIn: boolean;
+  loggedInUser: string;
+  login: (username: string, password?: string) => boolean;
+  logout: () => void;
 
   // Global utilities
   formatCurrency: (val: number) => string;
@@ -226,6 +232,9 @@ export const FinancialProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   const [categories, setCategories] = useState<Category[]>(INITIAL_CATEGORIES);
   const [notifications, setNotifications] = useState<Notification[]>(INITIAL_NOTIFICATIONS);
   
+  const [isLoggedIn, setIsLoggedIn] = useState<boolean>(false);
+  const [loggedInUser, setLoggedInUser] = useState<string>('');
+
   const [activeTab, setActiveTab] = useState<string>('Dashboard');
   const [currency, setCurrency] = useState<string>('INR (₹)');
   const [language, setLanguage] = useState<string>('English');
@@ -283,11 +292,59 @@ export const FinancialProvider: React.FC<{ children: React.ReactNode }> = ({ chi
 
       const storedNotif = localStorage.getItem('mexpense_notifications');
       if (storedNotif) setNotifications(JSON.parse(storedNotif));
+
+      const storedLogin = localStorage.getItem('mexpense_logged_in');
+      if (storedLogin === 'true') setIsLoggedIn(true);
+
+      const storedUser = localStorage.getItem('mexpense_username');
+      if (storedUser) setLoggedInUser(storedUser);
     } catch (e) {
       console.error('Error hydrating localStorage state', e);
     }
     isHydrated.current = true;
   }, []);
+
+  // Firebase snapshot listener synced to logged-in user slug
+  useEffect(() => {
+    if (!isHydrated.current || !isLoggedIn || !loggedInUser) return;
+
+    const hasFirebase = process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID && 
+                        process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID !== 'your_project_id';
+    
+    let unsubscribe: () => void = () => {};
+
+    if (hasFirebase) {
+      try {
+        const userSlug = loggedInUser.toLowerCase().replace(/[^a-z0-9]/g, '_') || 'default_user';
+        const userDocRef = doc(db, 'users', userSlug);
+        unsubscribe = onSnapshot(userDocRef, (docSnap) => {
+          if (docSnap.exists()) {
+            const data = docSnap.data();
+            if (data.transactions) setTransactions(data.transactions);
+            if (data.accounts) setAccounts(data.accounts);
+            if (data.loans) setLoans(data.loans);
+            if (data.family) setFamily(data.family);
+            if (data.categories) setCategories(data.categories);
+            if (data.notifications) setNotifications(data.notifications);
+            if (data.currency) setCurrency(data.currency);
+            if (data.language) setLanguage(data.language);
+            if (data.darkMode !== undefined) setDarkMode(data.darkMode);
+          }
+        });
+      } catch (err) {
+        console.error("Firebase connection error during hydration:", err);
+      }
+    }
+
+    return () => unsubscribe();
+  }, [isLoggedIn, loggedInUser]);
+
+  // Sync login status to localStorage
+  useEffect(() => {
+    if (!isHydrated.current) return;
+    localStorage.setItem('mexpense_logged_in', String(isLoggedIn));
+    localStorage.setItem('mexpense_username', loggedInUser);
+  }, [isLoggedIn, loggedInUser]);
 
   // Sync states to localStorage
   useEffect(() => {
@@ -334,6 +391,37 @@ export const FinancialProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     if (!isHydrated.current) return;
     localStorage.setItem('mexpense_notifications', JSON.stringify(notifications));
   }, [notifications]);
+
+  // Sync state changes to Firebase Firestore in the background (with debounce)
+  useEffect(() => {
+    if (!isHydrated.current || !isLoggedIn || !loggedInUser) return;
+    
+    const hasFirebase = process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID && 
+                        process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID !== 'your_project_id';
+    
+    if (hasFirebase) {
+      const timer = setTimeout(async () => {
+        try {
+          const userSlug = loggedInUser.toLowerCase().replace(/[^a-z0-9]/g, '_') || 'default_user';
+          const userDocRef = doc(db, 'users', userSlug);
+          await setDoc(userDocRef, {
+            transactions,
+            accounts,
+            loans,
+            family,
+            categories,
+            notifications,
+            darkMode,
+            currency,
+            language
+          }, { merge: true });
+        } catch (err) {
+          console.error("Failed to sync state changes to Firestore:", err);
+        }
+      }, 500); // 500ms debounce
+      return () => clearTimeout(timer);
+    }
+  }, [transactions, accounts, loans, family, categories, notifications, darkMode, currency, language, isLoggedIn, loggedInUser]);
 
   // Utility to format numbers using Selected Currency and Indian numbering schema
   const formatCurrency = (val: number) => {
@@ -801,6 +889,22 @@ export const FinancialProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     }
   };
 
+  const login = (username: string, password?: string): boolean => {
+    if (password && password !== 'password123') {
+      return false;
+    }
+    setLoggedInUser(username);
+    setIsLoggedIn(true);
+    return true;
+  };
+
+  const logout = () => {
+    setIsLoggedIn(false);
+    setLoggedInUser('');
+    localStorage.removeItem('mexpense_logged_in');
+    localStorage.removeItem('mexpense_username');
+  };
+
   return (
     <FinancialContext.Provider
       value={{
@@ -846,6 +950,10 @@ export const FinancialProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         markNotificationRead,
         clearNotifications,
         resetData,
+        isLoggedIn,
+        loggedInUser,
+        login,
+        logout,
         formatCurrency
       }}
     >

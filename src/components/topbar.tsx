@@ -26,8 +26,20 @@ export default function Topbar() {
     markNotificationRead, 
     clearNotifications,
     setIsExpenseOpen,
-    setIsIncomeOpen
+    setIsIncomeOpen,
+    loggedInUser,
+    logout
   } = useFinancials();
+
+  const getInitials = (name: string) => {
+    if (!name) return 'U';
+    const parts = name.trim().split(' ');
+    if (parts.length >= 2) {
+      return (parts[0][0] + parts[1][0]).toUpperCase();
+    }
+    return parts[0].slice(0, 2).toUpperCase();
+  };
+  const initials = getInitials(loggedInUser);
 
   const [showNotifications, setShowNotifications] = useState(false);
   const [showProfileMenu, setShowProfileMenu] = useState(false);
@@ -212,9 +224,9 @@ export default function Topbar() {
             className="flex items-center gap-2 p-1 hover:bg-slate-100 dark:hover:bg-slate-900 rounded-xl transition-all"
           >
             <div className="w-8 h-8 rounded-lg bg-gradient-to-tr from-blue-500 to-indigo-600 flex items-center justify-center text-white font-bold text-sm shadow-sm">
-              JD
+              {initials}
             </div>
-            <span className="hidden lg:inline text-xs font-bold text-slate-700 dark:text-slate-300">John Doe</span>
+            <span className="hidden lg:inline text-xs font-bold text-slate-700 dark:text-slate-300">{loggedInUser}</span>
             <ChevronDown size={14} className="hidden lg:block text-slate-400" />
           </button>
 
@@ -229,8 +241,10 @@ export default function Topbar() {
                   className="absolute right-0 mt-2 w-48 bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-white/10 rounded-xl shadow-xl py-1 z-20 text-slate-700 dark:text-slate-300"
                 >
                   <div className="px-4 py-2 border-b border-slate-100 dark:border-slate-800">
-                    <p className="text-xs font-bold text-slate-800 dark:text-slate-200">John Doe</p>
-                    <p className="text-[10px] text-slate-500 dark:text-slate-400 truncate">john.doe@mexpense.com</p>
+                    <p className="text-xs font-bold text-slate-800 dark:text-slate-200">{loggedInUser}</p>
+                    <p className="text-[10px] text-slate-500 dark:text-slate-400 truncate">
+                      {loggedInUser.toLowerCase().replace(/[^a-z0-9]/g, '')}@mexpense.com
+                    </p>
                   </div>
                   
                   <button className="w-full text-left px-4 py-2 hover:bg-slate-50 dark:hover:bg-slate-800 text-xs font-medium flex items-center gap-2">
@@ -246,7 +260,10 @@ export default function Topbar() {
                     <span>Account Settings</span>
                   </button>
                   <div className="border-t border-slate-100 dark:border-slate-800 my-1" />
-                  <button className="w-full text-left px-4 py-2 hover:bg-rose-50 dark:hover:bg-rose-950/20 text-rose-600 dark:text-rose-400 text-xs font-medium flex items-center gap-2">
+                  <button 
+                    onClick={logout}
+                    className="w-full text-left px-4 py-2 hover:bg-rose-50 dark:hover:bg-rose-950/20 text-rose-600 dark:text-rose-400 text-xs font-medium flex items-center gap-2"
+                  >
                     <LogOut size={14} />
                     <span>Sign Out</span>
                   </button>

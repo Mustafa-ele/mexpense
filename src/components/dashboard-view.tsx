@@ -105,7 +105,8 @@ export default function DashboardView() {
     setIsFamilyOpen,
     deleteTransaction,
     setEditingTransaction,
-    formatCurrency
+    formatCurrency,
+    loggedInUser
   } = useFinancials();
 
   const [mounted, setMounted] = useState(false);
@@ -241,7 +242,7 @@ export default function DashboardView() {
       {/* Welcome Hero */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-gradient-to-r from-blue-600/10 via-emerald-500/5 to-transparent p-6 rounded-2xl border border-blue-500/10 backdrop-blur-md">
         <div>
-          <h2 className="text-2xl font-extrabold tracking-tight text-slate-800 dark:text-white">Welcome back, John!</h2>
+          <h2 className="text-2xl font-extrabold tracking-tight text-slate-800 dark:text-white">Welcome back, {loggedInUser}!</h2>
           <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">Here is a summary of your personal and family financial metrics for this month.</p>
         </div>
         <div className="flex gap-2">

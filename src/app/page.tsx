@@ -14,10 +14,15 @@ import ReportsView from '@/components/reports-view';
 import NotificationsView from '@/components/notifications-view';
 import SettingsView from '@/components/settings-view';
 import QuickActionModals from '@/components/quick-action-modals';
+import LoginView from '@/components/login-view';
 import { motion, AnimatePresence } from 'framer-motion';
 
 export default function Home() {
-  const { activeTab } = useFinancials();
+  const { activeTab, isLoggedIn } = useFinancials();
+
+  if (!isLoggedIn) {
+    return <LoginView />;
+  }
 
   // Map tabs to views
   const renderActiveView = () => {
