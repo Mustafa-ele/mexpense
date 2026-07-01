@@ -18,7 +18,17 @@ const COLOR_OPTIONS = [
   { name: 'Gray', class: 'bg-slate-500 text-slate-500' },
 ];
 
-const EMOJI_OPTIONS = ['🍔', '🛒', '🛍️', '⚡', '🏠', '📈', '🎬', '📚', '🚕', '🏥', '⛽', '🎁', '🤝', '💼', '🏷️'];
+const EMOJI_OPTIONS = [
+  '🍔', '🛒', '🛍️', '⚡', '🏠', '📈', '🎬', '📚', '🚕', '🏥', '⛽', '🎁', '🤝', '💼', '🏷️',
+  // Transportation & Travel
+  '🚆', '🚇', '✈️', '🚗', '🏍️', '🚲',
+  // Food & Entertainment
+  '☕', '🍕', '🍿', '🎮', '🏀', '🏋️',
+  // Health, Beauty & Family
+  '💊', '🧴', '💄', '💈', '🧸', '🐾',
+  // Utilities & Miscellaneous
+  '📶', '🔌', '💧', '🧹', '🏨', '🏫'
+];
 
 export default function CategoriesView() {
   const { transactions, categories, addCategory, editCategory, deleteCategory, formatCurrency } = useFinancials();
@@ -34,12 +44,13 @@ export default function CategoriesView() {
   const [catColor, setCatColor] = useState('bg-slate-500');
   const [catLimit, setCatLimit] = useState('');
 
-  // Calculate actual spending per category for June 2026
-  const juneExpenses = transactions.filter(t => t.date.startsWith('2026-06') && t.type === 'expense');
+  // Calculate actual spending per category dynamically for current calendar month
+  const currentMonthPrefix = new Date().toISOString().slice(0, 7);
+  const currentMonthExpenses = transactions.filter(t => t.date.startsWith(currentMonthPrefix) && t.type === 'expense');
 
   const categorySpent: Record<string, number> = {};
   categories.forEach(cat => {
-    categorySpent[cat.name] = juneExpenses.filter(t => t.category === cat.name).reduce((sum, curr) => sum + curr.amount, 0);
+    categorySpent[cat.name] = currentMonthExpenses.filter(t => t.category === cat.name).reduce((sum, curr) => sum + curr.amount, 0);
   });
 
   const handleOpenAdd = () => {

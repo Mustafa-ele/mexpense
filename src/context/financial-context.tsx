@@ -271,10 +271,10 @@ export const FinancialProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   // Editing transaction
   const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null);
 
-  // Reference to prevent writing back empty states on first SSR render
   const isHydrated = useRef(false);
   const lastSyncedData = useRef<string>('');
   const hasAutoReconciled = useRef(false);
+  const isPendingWrite = useRef(false);
 
   // Sync dark mode class on html tag
   useEffect(() => {
@@ -341,7 +341,7 @@ export const FinancialProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         const userSlug = loggedInUser.toLowerCase().replace(/[^a-z0-9]/g, '_') || 'default_user';
         const userDocRef = doc(db, 'users', userSlug);
         unsubscribe = onSnapshot(userDocRef, (docSnap) => {
-          if (docSnap.exists()) {
+          if (docSnap.exists() && !isPendingWrite.current) {
             const data = docSnap.data();
             
             // Track stringified payload to break sync write-back loop
@@ -454,6 +454,8 @@ export const FinancialProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         return;
       }
 
+      isPendingWrite.current = true;
+
       const timer = setTimeout(async () => {
         try {
           const userSlug = loggedInUser.toLowerCase().replace(/[^a-z0-9]/g, '_') || 'default_user';
@@ -474,6 +476,8 @@ export const FinancialProvider: React.FC<{ children: React.ReactNode }> = ({ chi
           }), { merge: true });
         } catch (err) {
           console.error("Failed to sync state changes to Firestore:", err);
+        } finally {
+          isPendingWrite.current = false;
         }
       }, 500); // 500ms debounce
       return () => clearTimeout(timer);
@@ -934,11 +938,10 @@ export const FinancialProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     setNotifications([]);
   };
 
-  const resetData = (startFromZero: boolean) => {
+  const resetData = async (startFromZero: boolean) => {
     if (startFromZero) {
       setTransactions([]);
       setLoans([]);
-      setNotifications([]);
       setAccounts(prev => prev.map(a => ({ ...a, balance: 0, todayChange: 0 })));
       setFamily(prev => prev.map(f => ({ ...f, balance: 0, totalExpense: 0, totalContribution: 0 })));
       
@@ -951,6 +954,33 @@ export const FinancialProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         type: 'alert'
       };
       setNotifications([newNotif]);
+
+      // Force instant sync to Firestore to wipe it completely
+      const hasFirebase = process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID && 
+                          process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID !== 'your_project_id';
+      if (hasFirebase && loggedInUser) {
+        try {
+          const userSlug = loggedInUser.toLowerCase().replace(/[^a-z0-9]/g, '_') || 'default_user';
+          const userDocRef = doc(db, 'users', userSlug);
+          
+          const wipedData = {
+            transactions: [],
+            accounts: INITIAL_ACCOUNTS.map(a => ({ ...a, balance: 0, todayChange: 0 })),
+            loans: [],
+            family: INITIAL_FAMILY.map(f => ({ ...f, balance: 0, totalExpense: 0, totalContribution: 0 })),
+            categories: categories,
+            notifications: [newNotif],
+            darkMode: darkMode,
+            currency: currency,
+            language: language
+          };
+          
+          lastSyncedData.current = JSON.stringify(wipedData);
+          await setDoc(userDocRef, sanitizeForFirestore(wipedData), { merge: true });
+        } catch (err) {
+          console.error("Failed to force clear Firestore:", err);
+        }
+      }
     } else {
       // Restore initial default mock data
       setTransactions(INITIAL_TRANSACTIONS);
