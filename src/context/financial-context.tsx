@@ -138,6 +138,26 @@ interface FinancialContextType {
   formatCurrency: (val: number) => string;
 }
 
+const sanitizeForFirestore = (obj: any): any => {
+  if (obj === null || obj === undefined) return null;
+  if (Array.isArray(obj)) {
+    return obj.map(sanitizeForFirestore);
+  }
+  if (typeof obj === 'object') {
+    const sanitized: any = {};
+    for (const key in obj) {
+      if (Object.prototype.hasOwnProperty.call(obj, key)) {
+        const val = obj[key];
+        if (val !== undefined) {
+          sanitized[key] = sanitizeForFirestore(val);
+        }
+      }
+    }
+    return sanitized;
+  }
+  return obj;
+};
+
 const FinancialContext = createContext<FinancialContextType | undefined>(undefined);
 
 // Initial Mock Data
@@ -439,7 +459,7 @@ export const FinancialProvider: React.FC<{ children: React.ReactNode }> = ({ chi
           
           lastSyncedData.current = currentStateString;
 
-          await setDoc(userDocRef, {
+          await setDoc(userDocRef, sanitizeForFirestore({
             transactions,
             accounts,
             loans,
@@ -449,7 +469,7 @@ export const FinancialProvider: React.FC<{ children: React.ReactNode }> = ({ chi
             darkMode,
             currency,
             language
-          }, { merge: true });
+          }), { merge: true });
         } catch (err) {
           console.error("Failed to sync state changes to Firestore:", err);
         }
