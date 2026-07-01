@@ -61,7 +61,7 @@ export default function AccountsView() {
   // Filter transactions for selected account
   const accountLedger = transactions.filter(t => 
     t.account === selectedAccount || 
-    (t.type === 'transfer' && (t.fromAccount === selectedAccount || t.toAccount === selectedAccount || t.description.toLowerCase().includes(selectedAccount.toLowerCase())))
+    (t.type === 'transfer' && (t.fromAccount === selectedAccount || t.toAccount === selectedAccount))
   );
 
   return (
