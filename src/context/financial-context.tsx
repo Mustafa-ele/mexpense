@@ -988,14 +988,29 @@ export const FinancialProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     setNotifications((prev) => [newNotif, ...prev]);
   };
 
-  // Auto-reconcile balances on initial database hydration
+  // Auto-reconcile balances on initial database hydration (Self-healing mismatch check)
   useEffect(() => {
     if (!isHydrated.current || transactions.length === 0 || hasAutoReconciled.current) return;
     
-    const allBalancesZero = accounts.every(a => a.balance === 0);
-    if (allBalancesZero) {
+    // Calculate expected balances
+    let tempAccs = INITIAL_ACCOUNTS.map(a => ({ ...a, balance: 0, todayChange: 0 }));
+    let tempFam = INITIAL_FAMILY.map(f => ({ ...f, balance: 0, totalExpense: 0, totalContribution: 0 }));
+    const sortedTxs = [...transactions].reverse();
+    sortedTxs.forEach((tx) => {
+      const { updatedAccs, updatedFam } = applyBalanceAdjustment(tx, 1, tempAccs, tempFam);
+      tempAccs = updatedAccs;
+      tempFam = updatedFam;
+    });
+
+    const expectedBank = tempAccs.find(a => a.name === 'Bank Account')?.balance || 0;
+    const actualBank = accounts.find(a => a.name === 'Bank Account')?.balance || 0;
+
+    if (expectedBank !== actualBank) {
       hasAutoReconciled.current = true;
-      reconcileAllBalances();
+      setAccounts(tempAccs);
+      setFamily(tempFam);
+    } else {
+      hasAutoReconciled.current = true;
     }
   }, [transactions, accounts]);
 
