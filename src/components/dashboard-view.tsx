@@ -571,7 +571,17 @@ export default function DashboardView() {
                         {tx.category}
                       </span>
                     </td>
-                    <td className="py-3.5 px-4 font-medium">{tx.account}</td>
+                    <td className="py-3.5 px-4 font-semibold text-xs text-blue-600 dark:text-blue-400">
+                      {tx.type === 'transfer' ? (
+                        <span className="flex items-center gap-1 font-bold">
+                          {tx.fromAccount || tx.account}
+                          <span className="text-slate-400 font-normal">➔</span>
+                          {tx.toPerson || tx.toAccount}
+                        </span>
+                      ) : (
+                        tx.account
+                      )}
+                    </td>
                     <td className="py-3.5 px-4">{tx.paymentMode}</td>
                     <td className="py-3.5 px-4 text-slate-500 dark:text-slate-400 italic font-medium">{tx.description}</td>
                     <td className="py-3.5 px-4 font-bold text-sm">
