@@ -252,6 +252,7 @@ export const FinancialProvider: React.FC<{ children: React.ReactNode }> = ({ chi
 
   // Reference to prevent writing back empty states on first SSR render
   const isHydrated = useRef(false);
+  const lastSyncedData = useRef<string>('');
 
   // Sync dark mode class on html tag
   useEffect(() => {
@@ -320,6 +321,20 @@ export const FinancialProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         unsubscribe = onSnapshot(userDocRef, (docSnap) => {
           if (docSnap.exists()) {
             const data = docSnap.data();
+            
+            // Track stringified payload to break sync write-back loop
+            lastSyncedData.current = JSON.stringify({
+              transactions: data.transactions || [],
+              accounts: data.accounts || [],
+              loans: data.loans || [],
+              family: data.family || [],
+              categories: data.categories || [],
+              notifications: data.notifications || [],
+              darkMode: data.darkMode,
+              currency: data.currency,
+              language: data.language
+            });
+
             if (data.transactions) setTransactions(data.transactions);
             if (data.accounts) setAccounts(data.accounts);
             if (data.loans) setLoans(data.loans);
@@ -400,10 +415,30 @@ export const FinancialProvider: React.FC<{ children: React.ReactNode }> = ({ chi
                         process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID !== 'your_project_id';
     
     if (hasFirebase) {
+      const currentStateString = JSON.stringify({
+        transactions,
+        accounts,
+        loans,
+        family,
+        categories,
+        notifications,
+        darkMode,
+        currency,
+        language
+      });
+
+      // Avoid redundant write loop back if local state matches the fetched Firestore state
+      if (currentStateString === lastSyncedData.current) {
+        return;
+      }
+
       const timer = setTimeout(async () => {
         try {
           const userSlug = loggedInUser.toLowerCase().replace(/[^a-z0-9]/g, '_') || 'default_user';
           const userDocRef = doc(db, 'users', userSlug);
+          
+          lastSyncedData.current = currentStateString;
+
           await setDoc(userDocRef, {
             transactions,
             accounts,

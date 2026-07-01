@@ -53,7 +53,7 @@ const ACCOUNT_THEMES: Record<string, { bg: string; border: string; accent: strin
 };
 
 export default function AccountsView() {
-  const { accounts, transactions, setIsTransferOpen, setIsExpenseOpen, formatCurrency } = useFinancials();
+  const { accounts, transactions, setIsTransferOpen, setIsExpenseOpen, formatCurrency, loggedInUser } = useFinancials();
   const [selectedAccount, setSelectedAccount] = useState<string>('Bank Account');
 
   const activeAcc = accounts.find(a => a.name === selectedAccount) || accounts[0];
@@ -151,7 +151,7 @@ export default function AccountsView() {
             <div className="p-4 bg-slate-100/40 dark:bg-slate-900/20 rounded-xl space-y-3 border border-slate-200/30 dark:border-white/5">
               <div className="flex justify-between text-xs">
                 <span className="text-slate-500 dark:text-slate-400">Cardholder Name:</span>
-                <span className="font-bold">John Doe</span>
+                <span className="font-bold">{loggedInUser || 'Murtaza'}</span>
               </div>
               <div className="flex justify-between text-xs">
                 <span className="text-slate-500 dark:text-slate-400">Status:</span>
