@@ -154,21 +154,29 @@ export default function QuickActionModals() {
       return;
     }
 
+    // Check if source and destination are the same person
+    if (trSource === transferToPerson) {
+      alert("Source and Destination must be different.");
+      return;
+    }
+
     // If transferring to Self, source and destination must be different
     if (transferToPerson === 'Self' && trSource === trDest) {
       alert("Source and Destination accounts must be different.");
       return;
     }
 
+    const isSourceFamily = family.some(f => f.name === trSource);
+
     const payload = {
       date: trDate,
-      person: 'Self',
+      person: isSourceFamily ? trSource : 'Self',
       category: 'Transfer',
       account: trSource,
       paymentMode: 'Net Banking',
       description: transferToPerson === 'Self' 
-        ? `Transferred to ${trDest}. ${trDesc}`
-        : `Transferred allowance to ${transferToPerson}. ${trDesc}`,
+        ? `Transferred from ${trSource} to ${trDest}. ${trDesc}`
+        : `Transferred from ${trSource} to ${transferToPerson}. ${trDesc}`,
       amount: Number(trAmount),
       type: 'transfer' as const,
       fromAccount: trSource,
@@ -401,9 +409,14 @@ export default function QuickActionModals() {
 
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-1">
-                    <label className="text-[10px] uppercase font-bold text-slate-450">From Account</label>
+                    <label className="text-[10px] uppercase font-bold text-slate-450">From Source</label>
                     <select value={trSource} onChange={(e) => setTrSource(e.target.value)} className="w-full glass-input bg-transparent">
-                      {accounts.map(acc => <option key={acc.id} value={acc.name}>{acc.name}</option>)}
+                      <optgroup label="My Accounts" className="bg-white dark:bg-slate-950 text-slate-800 dark:text-slate-200">
+                        {accounts.map(acc => <option key={acc.id} value={acc.name}>{acc.name}</option>)}
+                      </optgroup>
+                      <optgroup label="Family Members" className="bg-white dark:bg-slate-950 text-slate-800 dark:text-slate-200">
+                        {family.map(f => <option key={f.id} value={f.name}>{f.name}</option>)}
+                      </optgroup>
                     </select>
                   </div>
                   

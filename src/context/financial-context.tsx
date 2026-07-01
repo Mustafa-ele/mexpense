@@ -509,21 +509,35 @@ export const FinancialProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         });
       }
     } else if (tx.type === 'transfer') {
-      // Deduct from Source account
+      // Deduct from Source (either Account or Family Member)
       const fromAccName = tx.fromAccount || tx.account;
-      
-      updatedAccs = updatedAccs.map((acc) => {
-        if (acc.name === fromAccName) {
-          const diff = tx.amount * multiplier;
-          return {
-            ...acc,
-            balance: acc.balance - diff,
-            todayChange: acc.todayChange - diff,
-            lastUpdated: todayStr
-          };
-        }
-        return acc;
-      });
+      const isFromFamily = familyList.some(f => f.name === fromAccName);
+
+      if (isFromFamily) {
+        updatedFam = updatedFam.map((fam) => {
+          if (fam.name === fromAccName) {
+            const diff = tx.amount * multiplier;
+            return {
+              ...fam,
+              balance: fam.balance - diff
+            };
+          }
+          return fam;
+        });
+      } else {
+        updatedAccs = updatedAccs.map((acc) => {
+          if (acc.name === fromAccName) {
+            const diff = tx.amount * multiplier;
+            return {
+              ...acc,
+              balance: acc.balance - diff,
+              todayChange: acc.todayChange - diff,
+              lastUpdated: todayStr
+            };
+          }
+          return acc;
+        });
+      }
 
       // Credit to To Account or To Person
       if (tx.toAccount) {
