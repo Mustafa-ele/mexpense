@@ -44,6 +44,7 @@ export default function QuickActionModals() {
   const [trDest, setTrDest] = useState('Cash Wallet');
   const [trDesc, setTrDesc] = useState('Inter-account transfer');
   const [transferToPerson, setTransferToPerson] = useState('Self');
+  const [transferFromPerson, setTransferFromPerson] = useState('Self');
 
   // 3. Loan Form
   const [loanPerson, setLoanPerson] = useState('');
@@ -86,6 +87,7 @@ export default function QuickActionModals() {
         setTrDest(editingTransaction.toAccount || 'Cash Wallet');
         setTrDesc(editingTransaction.description);
         setTransferToPerson(editingTransaction.toPerson || 'Self');
+        setTransferFromPerson(editingTransaction.person || 'Self');
         setIsTransferOpen(true);
       }
     }
@@ -155,28 +157,26 @@ export default function QuickActionModals() {
     }
 
     // Check if source and destination are the same person
-    if (trSource === transferToPerson) {
-      alert("Source and Destination must be different.");
+    if (transferFromPerson !== 'Self' && transferFromPerson === transferToPerson) {
+      alert("Sender and Recipient must be different.");
       return;
     }
 
-    // If transferring to Self, source and destination must be different
+    // If transferring to Self, source and destination accounts must be different
     if (transferToPerson === 'Self' && trSource === trDest) {
       alert("Source and Destination accounts must be different.");
       return;
     }
 
-    const isSourceFamily = family.some(f => f.name === trSource);
-
     const payload = {
       date: trDate,
-      person: isSourceFamily ? trSource : 'Self',
+      person: transferFromPerson,
       category: 'Transfer',
       account: trSource,
       paymentMode: 'Net Banking',
       description: transferToPerson === 'Self' 
-        ? `Transferred from ${trSource} to ${trDest}. ${trDesc}`
-        : `Transferred from ${trSource} to ${transferToPerson}. ${trDesc}`,
+        ? `Transferred from ${transferFromPerson} to ${trDest} (${trSource}). ${trDesc}`
+        : `Transferred from ${transferFromPerson} to ${transferToPerson} (${trSource}). ${trDesc}`,
       amount: Number(trAmount),
       type: 'transfer' as const,
       fromAccount: trSource,
@@ -390,16 +390,23 @@ export default function QuickActionModals() {
 
               {/* Form fields */}
               <div className="space-y-4 text-xs font-semibold">
-                {/* Transfer recipient selection */}
-                <div className="space-y-1">
-                  <label className="text-[10px] uppercase font-bold text-slate-450">Transfer To</label>
-                  <select value={transferToPerson} onChange={(e) => setTransferToPerson(e.target.value)} className="w-full glass-input bg-transparent">
-                    <option value="Self">Self (Inter-Account Transfer)</option>
-                    {family.map(f => <option key={f.id} value={f.name}>{f.name}</option>)}
-                    {/* Extra options from example */}
-                    {!family.find(f => f.name.includes('Father')) && <option value="Father">Father</option>}
-                    {!family.find(f => f.name.includes('Mother')) && <option value="Mother">Mother</option>}
-                  </select>
+                {/* Transfer sender/recipient selection */}
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-1">
+                    <label className="text-[10px] uppercase font-bold text-slate-450">From (Sender)</label>
+                    <select value={transferFromPerson} onChange={(e) => setTransferFromPerson(e.target.value)} className="w-full glass-input bg-transparent">
+                      <option value="Self">Self</option>
+                      {family.map(f => <option key={f.id} value={f.name}>{f.name}</option>)}
+                    </select>
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="text-[10px] uppercase font-bold text-slate-450">To (Recipient)</label>
+                    <select value={transferToPerson} onChange={(e) => setTransferToPerson(e.target.value)} className="w-full glass-input bg-transparent">
+                      <option value="Self">Self</option>
+                      {family.map(f => <option key={f.id} value={f.name}>{f.name}</option>)}
+                    </select>
+                  </div>
                 </div>
 
                 <div className="space-y-1">
@@ -409,20 +416,15 @@ export default function QuickActionModals() {
 
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-1">
-                    <label className="text-[10px] uppercase font-bold text-slate-450">From Source</label>
+                    <label className="text-[10px] uppercase font-bold text-slate-450">From Source (Paying Account)</label>
                     <select value={trSource} onChange={(e) => setTrSource(e.target.value)} className="w-full glass-input bg-transparent">
-                      <optgroup label="My Accounts" className="bg-white dark:bg-slate-950 text-slate-800 dark:text-slate-200">
-                        {accounts.map(acc => <option key={acc.id} value={acc.name}>{acc.name}</option>)}
-                      </optgroup>
-                      <optgroup label="Family Members" className="bg-white dark:bg-slate-950 text-slate-800 dark:text-slate-200">
-                        {family.map(f => <option key={f.id} value={f.name}>{f.name}</option>)}
-                      </optgroup>
+                      {accounts.map(acc => <option key={acc.id} value={acc.name}>{acc.name}</option>)}
                     </select>
                   </div>
                   
                   {transferToPerson === 'Self' && (
                     <div className="space-y-1">
-                      <label className="text-[10px] uppercase font-bold text-slate-450">To Account</label>
+                      <label className="text-[10px] uppercase font-bold text-slate-450">To Account (Destination)</label>
                       <select value={trDest} onChange={(e) => setTrDest(e.target.value)} className="w-full glass-input bg-transparent">
                         {accounts.map(acc => <option key={acc.id} value={acc.name}>{acc.name}</option>)}
                       </select>

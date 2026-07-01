@@ -509,13 +509,25 @@ export const FinancialProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         });
       }
     } else if (tx.type === 'transfer') {
-      // Deduct from Source (either Account or Family Member)
-      const fromAccName = tx.fromAccount || tx.account;
-      const isFromFamily = familyList.some(f => f.name === fromAccName);
+      // 1. Debit Source Account
+      const sourceAcc = tx.fromAccount || tx.account;
+      updatedAccs = updatedAccs.map((acc) => {
+        if (acc.name === sourceAcc) {
+          const diff = tx.amount * multiplier;
+          return {
+            ...acc,
+            balance: acc.balance - diff,
+            todayChange: acc.todayChange - diff,
+            lastUpdated: todayStr
+          };
+        }
+        return acc;
+      });
 
-      if (isFromFamily) {
+      // 2. Debit Sender (if family member)
+      if (tx.person !== 'Self') {
         updatedFam = updatedFam.map((fam) => {
-          if (fam.name === fromAccName) {
+          if (fam.name === tx.person) {
             const diff = tx.amount * multiplier;
             return {
               ...fam,
@@ -524,22 +536,23 @@ export const FinancialProvider: React.FC<{ children: React.ReactNode }> = ({ chi
           }
           return fam;
         });
-      } else {
-        updatedAccs = updatedAccs.map((acc) => {
-          if (acc.name === fromAccName) {
+      }
+
+      // 3. Credit Recipient (if family member)
+      if (tx.toPerson && tx.toPerson !== 'Self') {
+        updatedFam = updatedFam.map((fam) => {
+          if (fam.name === tx.toPerson) {
             const diff = tx.amount * multiplier;
             return {
-              ...acc,
-              balance: acc.balance - diff,
-              todayChange: acc.todayChange - diff,
-              lastUpdated: todayStr
+              ...fam,
+              balance: fam.balance + diff
             };
           }
-          return acc;
+          return fam;
         });
       }
 
-      // Credit to To Account or To Person
+      // 4. Credit Destination Account (if transferring to Self)
       if (tx.toAccount) {
         updatedAccs = updatedAccs.map((acc) => {
           if (acc.name === tx.toAccount) {
@@ -552,19 +565,6 @@ export const FinancialProvider: React.FC<{ children: React.ReactNode }> = ({ chi
             };
           }
           return acc;
-        });
-      }
-
-      if (tx.toPerson && tx.toPerson !== 'Self') {
-        updatedFam = updatedFam.map((fam) => {
-          if (fam.name === tx.toPerson) {
-            const diff = tx.amount * multiplier;
-            return {
-              ...fam,
-              balance: fam.balance + diff
-            };
-          }
-          return fam;
         });
       }
     }
