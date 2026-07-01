@@ -136,6 +136,7 @@ interface FinancialContextType {
 
   // Global utilities
   formatCurrency: (val: number) => string;
+  reconcileAllBalances: () => void;
 }
 
 const sanitizeForFirestore = (obj: any): any => {
@@ -273,6 +274,7 @@ export const FinancialProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   // Reference to prevent writing back empty states on first SSR render
   const isHydrated = useRef(false);
   const lastSyncedData = useRef<string>('');
+  const hasAutoReconciled = useRef(false);
 
   // Sync dark mode class on html tag
   useEffect(() => {
@@ -960,18 +962,58 @@ export const FinancialProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     }
   };
 
+  const reconcileAllBalances = () => {
+    let tempAccs = INITIAL_ACCOUNTS.map(a => ({ ...a, balance: 0, todayChange: 0 }));
+    let tempFam = INITIAL_FAMILY.map(f => ({ ...f, balance: 0, totalExpense: 0, totalContribution: 0 }));
+
+    const sortedTxs = [...transactions].reverse();
+
+    sortedTxs.forEach((tx) => {
+      const { updatedAccs, updatedFam } = applyBalanceAdjustment(tx, 1, tempAccs, tempFam);
+      tempAccs = updatedAccs;
+      tempFam = updatedFam;
+    });
+
+    setAccounts(tempAccs);
+    setFamily(tempFam);
+
+    const newNotif: Notification = {
+      id: `notif-${Date.now()}`,
+      title: 'Ledgers Reconciled',
+      message: 'All physical account balances and family allowances have been recalculated successfully from the transaction history.',
+      time: 'Just now',
+      read: false,
+      type: 'success'
+    };
+    setNotifications((prev) => [newNotif, ...prev]);
+  };
+
+  // Auto-reconcile balances on initial database hydration
+  useEffect(() => {
+    if (!isHydrated.current || transactions.length === 0 || hasAutoReconciled.current) return;
+    
+    const allBalancesZero = accounts.every(a => a.balance === 0);
+    if (allBalancesZero) {
+      hasAutoReconciled.current = true;
+      reconcileAllBalances();
+    }
+  }, [transactions, accounts]);
+
   const login = (username: string, password?: string): boolean => {
     if (password && password !== 'password123') {
       return false;
     }
     setLoggedInUser(username);
     setIsLoggedIn(true);
+    // Reset auto-reconcile lock on login
+    hasAutoReconciled.current = false;
     return true;
   };
 
   const logout = () => {
     setIsLoggedIn(false);
     setLoggedInUser('');
+    hasAutoReconciled.current = false;
     localStorage.removeItem('mexpense_logged_in');
     localStorage.removeItem('mexpense_username');
   };
@@ -1025,7 +1067,8 @@ export const FinancialProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         loggedInUser,
         login,
         logout,
-        formatCurrency
+        formatCurrency,
+        reconcileAllBalances
       }}
     >
       {children}

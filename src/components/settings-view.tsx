@@ -25,7 +25,8 @@ export default function SettingsView() {
     setLanguage,
     formatCurrency,
     resetData,
-    loggedInUser
+    loggedInUser,
+    reconcileAllBalances
   } = useFinancials();
 
   const getInitials = (name: string) => {
@@ -282,6 +283,15 @@ export default function SettingsView() {
             </div>
             
             <div className="flex flex-col gap-2 mt-2 pt-3 border-t border-slate-200/25 dark:border-white/5">
+              <button
+                onClick={() => {
+                  reconcileAllBalances();
+                  alert("Ledgers reconciled! All balances have been successfully re-calculated from your transaction history.");
+                }}
+                className="w-full flex items-center justify-center gap-1.5 py-2.5 bg-blue-50 hover:bg-blue-100 dark:bg-blue-950/20 dark:hover:bg-blue-900/30 border border-blue-200/50 dark:border-blue-900/30 rounded-xl text-xs font-bold text-blue-650 dark:text-blue-400 transition-all"
+              >
+                <span>Reconcile Ledgers from History</span>
+              </button>
               <button
                 onClick={() => {
                   const confirm = window.confirm("Are you sure you want to delete ALL transactions, active loans, family balances, and set all account balances to zero?");
