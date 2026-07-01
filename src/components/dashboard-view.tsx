@@ -130,8 +130,9 @@ export default function DashboardView() {
   // Bank + UPI
   const bankBalance = accounts.filter(a => a.type === 'bank' || a.type === 'upi').reduce((acc, curr) => acc + curr.balance, 0);
   
-  // Calculate Income & Expenses for Current Month (June 2026)
-  const monthlyTransactions = transactions.filter(t => t.date.startsWith('2026-06'));
+  // Calculate Income & Expenses for Current Month (Dynamic)
+  const currentMonthPrefix = new Date().toISOString().slice(0, 7); // e.g., "2026-07"
+  const monthlyTransactions = transactions.filter(t => t.date.startsWith(currentMonthPrefix));
   const monthlyIncome = monthlyTransactions.filter(t => t.type === 'income').reduce((acc, curr) => acc + curr.amount, 0);
   const monthlyExpense = monthlyTransactions.filter(t => t.type === 'expense').reduce((acc, curr) => acc + curr.amount, 0);
   const savings = monthlyIncome - monthlyExpense;
@@ -151,13 +152,21 @@ export default function DashboardView() {
   ];
 
   // 2. Charts Data Processing
-  // Line Chart: Income vs Expense by Date
+  // Line Chart: Income vs Expense by Date (Dynamic last 7 days)
   const dateWiseMap: Record<string, { date: string; income: number; expense: number }> = {};
-  // Let's populate last 7 days of transactions (June 24 to June 30)
-  const last7Days = ['2026-06-24', '2026-06-25', '2026-06-26', '2026-06-27', '2026-06-28', '2026-06-29', '2026-06-30'];
+  
+  const last7DaysList = Array.from({ length: 7 }, (_, i) => {
+    const d = new Date();
+    d.setDate(new Date().getDate() - (6 - i));
+    return d;
+  });
+
+  const last7Days = last7DaysList.map(d => d.toISOString().split('T')[0]);
   
   last7Days.forEach(d => {
-    dateWiseMap[d] = { date: d.split('-')[2] + ' Jun', income: 0, expense: 0 };
+    const dateObj = new Date(d);
+    const dayLabel = dateObj.toLocaleDateString('en-US', { day: 'numeric', month: 'short' });
+    dateWiseMap[d] = { date: dayLabel, income: 0, expense: 0 };
   });
 
   transactions.forEach(t => {
@@ -180,15 +189,19 @@ export default function DashboardView() {
     color: CATEGORY_COLORS[name] || '#64748b'
   }));
 
-  // Daily Spending Area Chart: Last 10 transactions
+  // Daily Spending Area Chart: Last 10 transactions (Dynamic Months)
   const areaChartData = transactions
     .filter(t => t.type === 'expense')
     .slice(0, 10)
     .reverse()
-    .map(t => ({
-      name: t.date.split('-')[2] + ' Jun',
-      amount: t.amount
-    }));
+    .map(t => {
+      const dateObj = new Date(t.date);
+      const dayLabel = dateObj.toLocaleDateString('en-US', { day: 'numeric', month: 'short' });
+      return {
+        name: dayLabel,
+        amount: t.amount
+      };
+    });
 
   // Account Distribution Pie Chart
   const pieChartData = accounts.map((acc, index) => ({

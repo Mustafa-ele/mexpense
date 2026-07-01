@@ -101,14 +101,23 @@ export default function ReportsView() {
       ];
     }
 
-    // Default: Monthly June 2026
-    const days = Array.from({ length: 7 }, (_, i) => 24 + i); // June 24 to 30
-    return days.map(d => {
-      const dateStr = `2026-06-${d}`;
+    // Default: Monthly Report - last 7 days dynamically
+    const today = new Date();
+    const daysList = Array.from({ length: 7 }, (_, i) => {
+      const d = new Date();
+      d.setDate(today.getDate() - (6 - i));
+      return d;
+    });
+    
+    return daysList.map(d => {
+      const dateStr = d.toISOString().split('T')[0];
       const sum = transactions
         .filter(t => t.date === dateStr && t.type === 'expense')
         .reduce((a, c) => a + c.amount, 0);
-      return { name: `${d} Jun`, value: sum };
+      return { 
+        name: d.toLocaleDateString('en-US', { day: 'numeric', month: 'short' }), 
+        value: sum 
+      };
     });
   };
 

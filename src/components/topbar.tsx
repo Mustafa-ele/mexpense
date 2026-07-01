@@ -43,7 +43,18 @@ export default function Topbar() {
 
   const [showNotifications, setShowNotifications] = useState(false);
   const [showProfileMenu, setShowProfileMenu] = useState(false);
-  const [currentMonth, setCurrentMonth] = useState('June 2026');
+  const getMonthsList = () => {
+    const list: string[] = [];
+    const date = new Date();
+    for (let i = 0; i < 6; i++) {
+      list.push(date.toLocaleDateString('en-US', { month: 'long', year: 'numeric' }));
+      date.setMonth(date.getMonth() - 1);
+    }
+    return list;
+  };
+
+  const monthsList = getMonthsList();
+  const [currentMonth, setCurrentMonth] = useState(monthsList[0]);
   const [showMonthDropdown, setShowMonthDropdown] = useState(false);
 
   const unreadCount = notifications.filter(n => !n.read).length;
@@ -59,7 +70,7 @@ export default function Topbar() {
   return (
     <header className="sticky top-0 z-20 w-full border-b border-slate-200/40 dark:border-white/5 bg-white/60 dark:bg-slate-950/60 backdrop-blur-md px-6 py-4 flex items-center justify-between">
       {/* Search Input Box */}
-      <div className="hidden sm:flex items-center gap-2.5 bg-slate-100/50 dark:bg-slate-900/30 border border-slate-200/50 dark:border-white/5 rounded-xl px-3.5 py-2 w-72 focus-within:ring-2 focus-within:ring-blue-500/20 focus-within:border-blue-500 transition-all duration-200">
+      <div className="hidden sm:flex items-center gap-2.5 bg-slate-100/50 dark:bg-slate-900/30 border border-slate-200/50 dark:border-white/5 rounded-xl px-3.5 py-2 w-72 focus-within:ring-2 focus-within:ring-blue-500/20 focus-within:border-blue-555 transition-all duration-200">
         <Search size={16} className="text-slate-400" />
         <input 
           type="text" 
@@ -96,7 +107,7 @@ export default function Topbar() {
                   exit={{ opacity: 0, y: 10 }}
                   className="absolute right-0 mt-1.5 w-40 bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-white/10 rounded-xl shadow-xl py-1 z-20"
                 >
-                  {['June 2026', 'May 2026', 'April 2026', 'March 2026'].map((month) => (
+                  {monthsList.map((month) => (
                     <button
                       key={month}
                       onClick={() => {
