@@ -105,8 +105,9 @@ export default function DashboardView() {
     setIsFamilyOpen,
     deleteTransaction,
     setEditingTransaction,
-    formatCurrency,
-    loggedInUser
+    loggedInUser,
+    currentMonth,
+    formatCurrency
   } = useFinancials();
 
   const [mounted, setMounted] = useState(false);
@@ -123,6 +124,45 @@ export default function DashboardView() {
 
   if (!mounted) return <div className="p-8 text-center text-slate-400">Loading Dashboard...</div>;
 
+  // Helper to get YYYY-MM prefix from "Month YYYY" string
+  const getMonthPrefix = (monthStr: string) => {
+    try {
+      const parts = monthStr.split(' ');
+      if (parts.length === 2) {
+        const monthName = parts[0];
+        const year = parts[1];
+        const date = new Date(Date.parse(`${monthName} 1, ${year}`));
+        if (!isNaN(date.getTime())) {
+          const mm = String(date.getMonth() + 1).padStart(2, '0');
+          return `${year}-${mm}`;
+        }
+      }
+    } catch (e) {}
+    return new Date().toISOString().slice(0, 7);
+  };
+
+  const getAnchorDate = (monthStr: string) => {
+    const today = new Date();
+    const currentMonthName = today.toLocaleString('en-US', { month: 'long', year: 'numeric' });
+    if (monthStr === currentMonthName) {
+      return today;
+    }
+    try {
+      const parts = monthStr.split(' ');
+      if (parts.length === 2) {
+        const monthName = parts[0];
+        const year = Number(parts[1]);
+        const d = new Date(Date.parse(`${monthName} 1, ${year}`));
+        if (!isNaN(d.getTime())) {
+          d.setMonth(d.getMonth() + 1);
+          d.setDate(0); // Last day of selected month
+          return d;
+        }
+      }
+    } catch (e) {}
+    return today;
+  };
+
   // 1. Calculate Summary Cards totals
   const totalBalance = accounts.reduce((acc, curr) => acc + curr.balance, 0);
   const cashBalance = accounts.find(a => a.type === 'cash')?.balance || 0;
@@ -131,7 +171,7 @@ export default function DashboardView() {
   const bankBalance = accounts.filter(a => a.type === 'bank' || a.type === 'upi').reduce((acc, curr) => acc + curr.balance, 0);
   
   // Calculate Income & Expenses for Current Month (Dynamic)
-  const currentMonthPrefix = new Date().toISOString().slice(0, 7); // e.g., "2026-07"
+  const currentMonthPrefix = getMonthPrefix(currentMonth);
   const monthlyTransactions = transactions.filter(t => t.date.startsWith(currentMonthPrefix));
   const monthlyIncome = monthlyTransactions.filter(t => t.type === 'income').reduce((acc, curr) => acc + curr.amount, 0);
   const monthlyExpense = monthlyTransactions.filter(t => t.type === 'expense').reduce((acc, curr) => acc + curr.amount, 0);
@@ -152,12 +192,13 @@ export default function DashboardView() {
   ];
 
   // 2. Charts Data Processing
-  // Line Chart: Income vs Expense by Date (Dynamic last 7 days)
+  // Line Chart: Income vs Expense by Date (Dynamic last 7 days of selected month)
   const dateWiseMap: Record<string, { date: string; income: number; expense: number }> = {};
   
+  const anchorDate = getAnchorDate(currentMonth);
   const last7DaysList = Array.from({ length: 7 }, (_, i) => {
-    const d = new Date();
-    d.setDate(new Date().getDate() - (6 - i));
+    const d = new Date(anchorDate);
+    d.setDate(anchorDate.getDate() - (6 - i));
     return d;
   });
 

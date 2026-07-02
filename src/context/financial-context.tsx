@@ -134,6 +134,8 @@ interface FinancialContextType {
   loggedInUser: string;
   login: (username: string, password?: string) => boolean;
   logout: () => void;
+  currentMonth: string;
+  setCurrentMonth: React.Dispatch<React.SetStateAction<string>>;
 
   // Global utilities
   formatCurrency: (val: number) => string;
@@ -261,6 +263,9 @@ export const FinancialProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   const [currency, setCurrency] = useState<string>('INR (₹)');
   const [language, setLanguage] = useState<string>('English');
   const [darkMode, setDarkMode] = useState<boolean>(false);
+  const [currentMonth, setCurrentMonth] = useState<string>(() => {
+    return new Date().toLocaleString('en-US', { month: 'long', year: 'numeric' });
+  });
 
   // Modal UI state
   const [isExpenseOpen, setIsExpenseOpen] = useState(false);
@@ -1178,6 +1183,8 @@ export const FinancialProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         login,
         logout,
         importData,
+        currentMonth,
+        setCurrentMonth,
         formatCurrency,
         reconcileAllBalances
       }}

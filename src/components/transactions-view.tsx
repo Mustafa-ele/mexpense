@@ -20,7 +20,15 @@ const CATEGORY_COLORS: Record<string, string> = {
 };
 
 export default function TransactionsView() {
-  const { transactions, setIsExpenseOpen, deleteTransaction, setEditingTransaction, formatCurrency } = useFinancials();
+  const { 
+    transactions, 
+    setIsExpenseOpen, 
+    deleteTransaction, 
+    setEditingTransaction, 
+    formatCurrency,
+    currentMonth
+  } = useFinancials();
+  
   const [searchTerm, setSearchTerm] = useState('');
   const [typeFilter, setTypeFilter] = useState<'all' | 'income' | 'expense' | 'transfer'>('all');
   const [categoryFilter, setCategoryFilter] = useState<string>('all');
@@ -29,15 +37,33 @@ export default function TransactionsView() {
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
 
+  // Helper to get YYYY-MM prefix from "Month YYYY" string
+  const getMonthPrefix = (monthStr: string) => {
+    try {
+      const parts = monthStr.split(' ');
+      if (parts.length === 2) {
+        const monthName = parts[0];
+        const year = parts[1];
+        const date = new Date(Date.parse(`${monthName} 1, ${year}`));
+        if (!isNaN(date.getTime())) {
+          const mm = String(date.getMonth() + 1).padStart(2, '0');
+          return `${year}-${mm}`;
+        }
+      }
+    } catch (e) {}
+    return new Date().toISOString().slice(0, 7);
+  };
+
   // Filter
   const filtered = transactions.filter(t => {
+    const matchesMonth = t.date.startsWith(getMonthPrefix(currentMonth));
     const matchesSearch = 
       t.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
       t.person.toLowerCase().includes(searchTerm.toLowerCase()) ||
       t.account.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesType = typeFilter === 'all' || t.type === typeFilter;
     const matchesCategory = categoryFilter === 'all' || t.category === categoryFilter;
-    return matchesSearch && matchesType && matchesCategory;
+    return matchesMonth && matchesSearch && matchesType && matchesCategory;
   });
 
   // Sort

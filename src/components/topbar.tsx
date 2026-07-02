@@ -28,7 +28,9 @@ export default function Topbar() {
     setIsExpenseOpen,
     setIsIncomeOpen,
     loggedInUser,
-    logout
+    logout,
+    currentMonth,
+    setCurrentMonth
   } = useFinancials();
 
   const getInitials = (name: string) => {
@@ -54,7 +56,6 @@ export default function Topbar() {
   };
 
   const monthsList = getMonthsList();
-  const [currentMonth, setCurrentMonth] = useState(monthsList[0]);
   const [showMonthDropdown, setShowMonthDropdown] = useState(false);
 
   const unreadCount = notifications.filter(n => !n.read).length;
