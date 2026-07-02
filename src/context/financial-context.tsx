@@ -129,6 +129,7 @@ interface FinancialContextType {
   markNotificationRead: (id: string) => void;
   clearNotifications: () => void;
   resetData: (startFromZero: boolean) => void;
+  importData: (data: any) => Promise<boolean>;
   isLoggedIn: boolean;
   loggedInUser: string;
   login: (username: string, password?: string) => boolean;
@@ -1063,6 +1064,62 @@ export const FinancialProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     localStorage.removeItem('mexpense_username');
   };
 
+  const importData = async (data: any): Promise<boolean> => {
+    try {
+      if (data.mexpense_transactions) setTransactions(JSON.parse(data.mexpense_transactions));
+      if (data.mexpense_accounts) setAccounts(JSON.parse(data.mexpense_accounts));
+      if (data.mexpense_loans) setLoans(JSON.parse(data.mexpense_loans));
+      if (data.mexpense_family) setFamily(JSON.parse(data.mexpense_family));
+      if (data.mexpense_categories) setCategories(JSON.parse(data.mexpense_categories));
+      if (data.mexpense_notifications) setNotifications(JSON.parse(data.mexpense_notifications));
+      if (data.mexpense_currency) setCurrency(data.mexpense_currency);
+      if (data.mexpense_language) setLanguage(data.mexpense_language);
+      if (data.mexpense_dark_mode !== undefined) setDarkMode(data.mexpense_dark_mode === 'true' || data.mexpense_dark_mode === true);
+
+      Object.entries(data).forEach(([key, val]) => {
+        if (val) localStorage.setItem(key, String(val));
+      });
+
+      const hasFirebase = process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID && 
+                          process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID !== 'your_project_id';
+      if (hasFirebase && loggedInUser) {
+        const userSlug = loggedInUser.toLowerCase().replace(/[^a-z0-9]/g, '_') || 'default_user';
+        const userDocRef = doc(db, 'users', userSlug);
+        
+        const payload = {
+          transactions: data.mexpense_transactions ? JSON.parse(data.mexpense_transactions) : [],
+          accounts: data.mexpense_accounts ? JSON.parse(data.mexpense_accounts) : INITIAL_ACCOUNTS,
+          loans: data.mexpense_loans ? JSON.parse(data.mexpense_loans) : [],
+          family: data.mexpense_family ? JSON.parse(data.mexpense_family) : INITIAL_FAMILY,
+          categories: data.mexpense_categories ? JSON.parse(data.mexpense_categories) : INITIAL_CATEGORIES,
+          notifications: data.mexpense_notifications ? JSON.parse(data.mexpense_notifications) : [],
+          darkMode: data.mexpense_dark_mode === 'true' || data.mexpense_dark_mode === true,
+          currency: data.mexpense_currency || currency,
+          language: data.mexpense_language || language
+        };
+
+        hasAutoReconciled.current = false;
+        lastSyncedData.current = JSON.stringify(payload);
+        await setDoc(userDocRef, sanitizeForFirestore(payload), { merge: true });
+      }
+
+      const newNotif: Notification = {
+        id: `notif-${Date.now()}`,
+        title: 'State Restored',
+        message: 'Your account ledgers and preferences have been successfully restored from the backup file.',
+        time: 'Just now',
+        read: false,
+        type: 'success'
+      };
+      setNotifications((prev) => [newNotif, ...prev]);
+
+      return true;
+    } catch (err) {
+      console.error("Failed to restore backup:", err);
+      return false;
+    }
+  };
+
   return (
     <FinancialContext.Provider
       value={{
@@ -1112,6 +1169,7 @@ export const FinancialProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         loggedInUser,
         login,
         logout,
+        importData,
         formatCurrency,
         reconcileAllBalances
       }}

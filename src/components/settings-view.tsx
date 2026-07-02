@@ -26,7 +26,8 @@ export default function SettingsView() {
     formatCurrency,
     resetData,
     loggedInUser,
-    reconcileAllBalances
+    reconcileAllBalances,
+    importData
   } = useFinancials();
 
   const getInitials = (name: string) => {
@@ -96,14 +97,15 @@ export default function SettingsView() {
       if (!file) return;
       
       const reader = new FileReader();
-      reader.onload = (event: any) => {
+      reader.onload = async (event: any) => {
         try {
           const data = JSON.parse(event.target.result);
-          Object.entries(data).forEach(([key, val]) => {
-            if (val) localStorage.setItem(key, val as string);
-          });
-          alert("State successfully restored! Reloading page...");
-          window.location.reload();
+          const success = await importData(data);
+          if (success) {
+            alert("Backup successfully restored and synced to cloud!");
+          } else {
+            alert("Failed to restore backup. Please ensure the file is valid.");
+          }
         } catch (err) {
           alert("Failed to parse backup JSON file. Ensure you uploaded a valid mExpense backup.");
         }
