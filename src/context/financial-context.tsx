@@ -276,6 +276,7 @@ export const FinancialProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   const lastSyncedData = useRef<string>('');
   const hasAutoReconciled = useRef(false);
   const isPendingWrite = useRef(false);
+  const hasReceivedInitialSnapshot = useRef(false);
 
   // Sync dark mode class on html tag
   useEffect(() => {
@@ -368,6 +369,7 @@ export const FinancialProvider: React.FC<{ children: React.ReactNode }> = ({ chi
             if (data.language) setLanguage(data.language);
             if (data.darkMode !== undefined) setDarkMode(data.darkMode);
           }
+          hasReceivedInitialSnapshot.current = true; // Unlocks writes since fetch has resolved
         });
       } catch (err) {
         console.error("Firebase connection error during hydration:", err);
@@ -438,6 +440,10 @@ export const FinancialProvider: React.FC<{ children: React.ReactNode }> = ({ chi
                         process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID !== 'your_project_id';
     
     if (hasFirebase) {
+      if (!hasReceivedInitialSnapshot.current) {
+        return;
+      }
+
       const currentStateString = JSON.stringify({
         transactions,
         accounts,
@@ -1051,8 +1057,8 @@ export const FinancialProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     }
     setLoggedInUser(username);
     setIsLoggedIn(true);
-    // Reset auto-reconcile lock on login
     hasAutoReconciled.current = false;
+    hasReceivedInitialSnapshot.current = false;
     return true;
   };
 
@@ -1060,6 +1066,7 @@ export const FinancialProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     setIsLoggedIn(false);
     setLoggedInUser('');
     hasAutoReconciled.current = false;
+    hasReceivedInitialSnapshot.current = false;
     localStorage.removeItem('mexpense_logged_in');
     localStorage.removeItem('mexpense_username');
   };
@@ -1099,6 +1106,7 @@ export const FinancialProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         };
 
         hasAutoReconciled.current = false;
+        hasReceivedInitialSnapshot.current = true;
         lastSyncedData.current = JSON.stringify(payload);
         await setDoc(userDocRef, sanitizeForFirestore(payload), { merge: true });
       }
