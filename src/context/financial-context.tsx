@@ -527,6 +527,10 @@ export const FinancialProvider: React.FC<{ children: React.ReactNode }> = ({ chi
 
     const todayStr = new Date().toLocaleDateString() + ' ' + new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
 
+    const isAdmin = (name: string) => {
+      return name === 'Self' || (loggedInUser && name.toLowerCase() === loggedInUser.toLowerCase());
+    };
+
     if (tx.type === 'income') {
       updatedAccs = updatedAccs.map((acc) => {
         if (acc.name === tx.account) {
@@ -541,7 +545,7 @@ export const FinancialProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         return acc;
       });
 
-      if (tx.person !== 'Self') {
+      if (!isAdmin(tx.person)) {
         updatedFam = updatedFam.map((fam) => {
           if (fam.name === tx.person) {
             const diff = tx.amount * multiplier;
@@ -568,7 +572,7 @@ export const FinancialProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         return acc;
       });
 
-      if (tx.person !== 'Self') {
+      if (!isAdmin(tx.person)) {
         updatedFam = updatedFam.map((fam) => {
           if (fam.name === tx.person) {
             const diff = tx.amount * multiplier;
@@ -582,8 +586,8 @@ export const FinancialProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         });
       }
     } else if (tx.type === 'transfer') {
-      // 1. Debit Source Account (only if Sender is Self)
-      if (tx.person === 'Self') {
+      // 1. Debit Source Account (only if Sender is Self/Admin)
+      if (isAdmin(tx.person)) {
         const sourceAcc = tx.fromAccount || tx.account;
         updatedAccs = updatedAccs.map((acc) => {
           if (acc.name === sourceAcc) {
@@ -600,7 +604,7 @@ export const FinancialProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       }
 
       // 2. Debit Sender (if family member)
-      if (tx.person !== 'Self') {
+      if (!isAdmin(tx.person)) {
         updatedFam = updatedFam.map((fam) => {
           if (fam.name === tx.person) {
             const diff = tx.amount * multiplier;
@@ -614,7 +618,7 @@ export const FinancialProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       }
 
       // 3. Credit Recipient (if family member)
-      if (tx.toPerson && tx.toPerson !== 'Self') {
+      if (tx.toPerson && !isAdmin(tx.toPerson)) {
         updatedFam = updatedFam.map((fam) => {
           if (fam.name === tx.toPerson) {
             const diff = tx.amount * multiplier;
@@ -627,7 +631,7 @@ export const FinancialProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         });
       }
 
-      // 4. Credit Destination Account (if transferring to Self)
+      // 4. Credit Destination Account (if transferring to Self/Account)
       if (tx.toAccount) {
         updatedAccs = updatedAccs.map((acc) => {
           if (acc.name === tx.toAccount) {
