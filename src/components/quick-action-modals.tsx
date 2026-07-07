@@ -177,7 +177,9 @@ export default function QuickActionModals() {
       return;
     }
 
-    const isInternal = transferFromPerson !== 'Self' && transferToPerson !== 'Self';
+    const isSenderAdmin = transferFromPerson === 'Self' || (loggedInUser && transferFromPerson.toLowerCase() === loggedInUser.toLowerCase());
+    const isRecipientAdmin = transferToPerson === 'Self' || (loggedInUser && transferToPerson.toLowerCase() === loggedInUser.toLowerCase());
+    const isInternal = !isSenderAdmin && !isRecipientAdmin;
 
     const payload = {
       date: trDate,
@@ -185,7 +187,7 @@ export default function QuickActionModals() {
       category: 'Transfer',
       account: isInternal ? 'Internal' : trSource,
       paymentMode: isInternal ? (trFromPocket === 'cash' ? 'Cash' : 'Net Banking') : (trSource === 'Cash Wallet' ? 'Cash' : 'Net Banking'),
-      description: transferToPerson === 'Self' 
+      description: isRecipientAdmin 
         ? `Transferred from ${transferFromPerson} to ${trDest} (${trSource}). ${trDesc}`
         : isInternal
         ? `Transferred allowance from ${transferFromPerson} (${trFromPocket === 'cash' ? 'Cash' : 'Bank'}) to ${transferToPerson} (${trToPocket === 'cash' ? 'Cash' : 'Bank'}). ${trDesc}`
@@ -193,8 +195,8 @@ export default function QuickActionModals() {
       amount: Number(trAmount),
       type: 'transfer' as const,
       fromAccount: isInternal ? 'Internal' : trSource,
-      toAccount: transferToPerson === 'Self' ? trDest : undefined,
-      toPerson: transferToPerson !== 'Self' ? transferToPerson : undefined,
+      toAccount: isRecipientAdmin ? trDest : undefined,
+      toPerson: !isRecipientAdmin ? transferToPerson : undefined,
       fromPocket: trFromPocket,
       toPocket: trToPocket
     };

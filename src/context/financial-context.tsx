@@ -627,31 +627,31 @@ export const FinancialProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         });
       }
 
-      // 2. Debit Sender (if family member)
-      updatedFam = updatedFam.map((fam) => {
-        const isSender = fam.name === tx.person || (isAdmin(tx.person) && fam.name.toLowerCase() === loggedInUser.toLowerCase());
-        if (isSender) {
-          const diff = tx.amount * multiplier;
-          const isCashPocket = tx.fromPocket === 'cash' || 
-            (!tx.fromPocket && ((tx.fromAccount || tx.account) === 'Cash Wallet' || tx.paymentMode === 'Cash'));
-          
-          const newBank = isCashPocket ? fam.bankBalance : fam.bankBalance - diff;
-          const newCash = isCashPocket ? fam.cashBalance - diff : fam.cashBalance;
-          return {
-            ...fam,
-            bankBalance: newBank,
-            cashBalance: newCash,
-            balance: newBank + newCash
-          };
-        }
-        return fam;
-      });
-
-      // 3. Credit Recipient (if family member)
-      if (tx.toPerson) {
+      // 2. Debit Sender (if family member and not admin)
+      if (!isAdmin(tx.person)) {
         updatedFam = updatedFam.map((fam) => {
-          const isRecipient = fam.name === tx.toPerson || (tx.toPerson && isAdmin(tx.toPerson) && fam.name.toLowerCase() === loggedInUser.toLowerCase());
-          if (isRecipient) {
+          if (fam.name === tx.person) {
+            const diff = tx.amount * multiplier;
+            const isCashPocket = tx.fromPocket === 'cash' || 
+              (!tx.fromPocket && ((tx.fromAccount || tx.account) === 'Cash Wallet' || tx.paymentMode === 'Cash'));
+            
+            const newBank = isCashPocket ? fam.bankBalance : fam.bankBalance - diff;
+            const newCash = isCashPocket ? fam.cashBalance - diff : fam.cashBalance;
+            return {
+              ...fam,
+              bankBalance: newBank,
+              cashBalance: newCash,
+              balance: newBank + newCash
+            };
+          }
+          return fam;
+        });
+      }
+
+      // 3. Credit Recipient (if family member and not admin)
+      if (tx.toPerson && !isAdmin(tx.toPerson)) {
+        updatedFam = updatedFam.map((fam) => {
+          if (fam.name === tx.toPerson) {
             const diff = tx.amount * multiplier;
             const isCashPocket = tx.toPocket === 'cash' || 
               (!tx.toPocket && (tx.toAccount === 'Cash Wallet' || tx.paymentMode === 'Cash'));
