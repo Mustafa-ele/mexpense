@@ -37,7 +37,8 @@ export default function FamilyView() {
   // Form Fields
   const [famName, setFamName] = useState('');
   const [famAvatar, setFamAvatar] = useState('👩‍💼');
-  const [famBalance, setFamBalance] = useState('');
+  const [famBankBalance, setFamBankBalance] = useState('');
+  const [famCashBalance, setFamCashBalance] = useState('');
   const [famSummary, setFamSummary] = useState('');
 
   const activeMember = family.find(f => f.name === selectedMember) || family[0];
@@ -66,7 +67,8 @@ export default function FamilyView() {
     setEditingId(null);
     setFamName('');
     setFamAvatar('👩‍💼');
-    setFamBalance('');
+    setFamBankBalance('');
+    setFamCashBalance('');
     setFamSummary('');
     setIsModalOpen(true);
   };
@@ -76,7 +78,8 @@ export default function FamilyView() {
     setEditingId(member.id);
     setFamName(member.name);
     setFamAvatar(member.avatar);
-    setFamBalance(member.balance.toString());
+    setFamBankBalance((member.bankBalance || 0).toString());
+    setFamCashBalance((member.cashBalance || 0).toString());
     setFamSummary(member.monthlySummary);
     setIsModalOpen(true);
   };
@@ -99,10 +102,15 @@ export default function FamilyView() {
       return;
     }
 
+    const bankVal = famBankBalance ? Number(famBankBalance) : 0;
+    const cashVal = famCashBalance ? Number(famCashBalance) : 0;
+
     const payload = {
       name: famName.trim(),
       avatar: famAvatar,
-      balance: famBalance ? Number(famBalance) : 0,
+      bankBalance: bankVal,
+      cashBalance: cashVal,
+      balance: bankVal + cashVal,
       monthlySummary: famSummary || 'Family member profile'
     };
 
@@ -192,7 +200,19 @@ export default function FamilyView() {
                 </div>
               </div>
 
-              <div className="mt-6 pt-4 border-t border-slate-200/35 dark:border-white/5 grid grid-cols-2 gap-2 text-[10px] font-semibold text-slate-500">
+              <div className="mt-6 pt-4 border-t border-slate-200/35 dark:border-white/5 grid grid-cols-2 gap-y-3 gap-x-2 text-[10px] font-semibold text-slate-500">
+                <div>
+                  <span className="block text-[8px] uppercase tracking-wider text-slate-400 font-bold">Bank Pocket</span>
+                  <span className="text-blue-600 dark:text-blue-450 font-bold text-xs font-sans">
+                    {formatCurrency(member.bankBalance || 0)}
+                  </span>
+                </div>
+                <div>
+                  <span className="block text-[8px] uppercase tracking-wider text-slate-400 font-bold">Cash Pocket</span>
+                  <span className="text-amber-600 dark:text-amber-500 font-bold text-xs font-sans">
+                    {formatCurrency(member.cashBalance || 0)}
+                  </span>
+                </div>
                 <div>
                   <span className="block text-[8px] uppercase tracking-wider text-slate-400 font-bold">Total Expense</span>
                   <span className="text-slate-800 dark:text-slate-250 font-bold text-xs font-sans">
@@ -341,15 +361,27 @@ export default function FamilyView() {
                   />
                 </div>
 
-                <div className="space-y-1">
-                  <label className="text-[10px] uppercase font-bold text-slate-450">Opening Allowance Balance ($)</label>
-                  <input 
-                    type="number" 
-                    placeholder="e.g. 5000" 
-                    value={famBalance} 
-                    onChange={(e) => setFamBalance(e.target.value)} 
-                    className="w-full glass-input"
-                  />
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-1">
+                    <label className="text-[10px] uppercase font-bold text-slate-450">Opening Bank Balance</label>
+                    <input 
+                      type="number" 
+                      placeholder="e.g. 3000" 
+                      value={famBankBalance} 
+                      onChange={(e) => setFamBankBalance(e.target.value)} 
+                      className="w-full glass-input"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-[10px] uppercase font-bold text-slate-450">Opening Cash Balance</label>
+                    <input 
+                      type="number" 
+                      placeholder="e.g. 2000" 
+                      value={famCashBalance} 
+                      onChange={(e) => setFamCashBalance(e.target.value)} 
+                      className="w-full glass-input"
+                    />
+                  </div>
                 </div>
 
                 <div className="space-y-2">

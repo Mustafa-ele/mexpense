@@ -56,7 +56,8 @@ export default function QuickActionModals() {
   // 4. Family Form
   const [famName, setFamName] = useState('');
   const [famAvatar, setFamAvatar] = useState('👩‍💼');
-  const [famBalance, setFamBalance] = useState('');
+  const [famBankBalance, setFamBankBalance] = useState('');
+  const [famCashBalance, setFamCashBalance] = useState('');
   const [famSummary, setFamSummary] = useState('');
 
   // Pre-fill fields on Edit Mode
@@ -110,7 +111,8 @@ export default function QuickActionModals() {
     setLoanAmount('');
     setFamName('');
     setFamAvatar('👩‍💼');
-    setFamBalance('');
+    setFamBankBalance('');
+    setFamCashBalance('');
     setFamSummary('');
   };
 
@@ -230,10 +232,15 @@ export default function QuickActionModals() {
       return;
     }
 
+    const bankVal = famBankBalance ? Number(famBankBalance) : 0;
+    const cashVal = famCashBalance ? Number(famCashBalance) : 0;
+
     addFamilyMember({
       name: famName,
       avatar: famAvatar,
-      balance: famBalance ? Number(famBalance) : 0,
+      bankBalance: bankVal,
+      cashBalance: cashVal,
+      balance: bankVal + cashVal,
       monthlySummary: famSummary || 'Family account holder'
     });
 
@@ -537,9 +544,15 @@ export default function QuickActionModals() {
                   <label className="text-[10px] uppercase font-bold text-slate-450">Member Name</label>
                   <input type="text" placeholder="e.g. Alice Doe" value={famName} onChange={(e) => setFamName(e.target.value)} className="w-full glass-input" />
                 </div>
-                <div className="space-y-1">
-                  <label className="text-[10px] uppercase font-bold text-slate-450">Opening Allowance Balance</label>
-                  <input type="number" placeholder="e.g. 5000" value={famBalance} onChange={(e) => setFamBalance(e.target.value)} className="w-full glass-input" />
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-1">
+                    <label className="text-[10px] uppercase font-bold text-slate-450">Opening Bank Balance</label>
+                    <input type="number" placeholder="e.g. 3000" value={famBankBalance} onChange={(e) => setFamBankBalance(e.target.value)} className="w-full glass-input" />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-[10px] uppercase font-bold text-slate-450">Opening Cash Balance</label>
+                    <input type="number" placeholder="e.g. 2000" value={famCashBalance} onChange={(e) => setFamCashBalance(e.target.value)} className="w-full glass-input" />
+                  </div>
                 </div>
                 <div className="space-y-2">
                   <label className="text-[10px] uppercase font-bold text-slate-450">Select Avatar Emoji</label>

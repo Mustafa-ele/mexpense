@@ -55,7 +55,11 @@ export interface FamilyMember {
   name: string;
   avatar: string; // Emoji
   balance: number;
+  bankBalance: number;
+  cashBalance: number;
   startingBalance?: number;
+  startingBankBalance?: number;
+  startingCashBalance?: number;
   totalExpense: number;
   totalContribution: number;
   monthlySummary: string;
@@ -225,6 +229,8 @@ const INITIAL_FAMILY: FamilyMember[] = [
     name: 'Emma (Wife)',
     avatar: '👩‍💼',
     balance: 0,
+    bankBalance: 0,
+    cashBalance: 0,
     totalExpense: 0,
     totalContribution: 0,
     monthlySummary: 'Active spender, covers grocery expenses'
@@ -234,6 +240,8 @@ const INITIAL_FAMILY: FamilyMember[] = [
     name: 'Leo (Son)',
     avatar: '👦',
     balance: 0,
+    bankBalance: 0,
+    cashBalance: 0,
     totalExpense: 0,
     totalContribution: 0,
     monthlySummary: 'Pocket money allocated, mostly minor entertainment spend'
@@ -243,6 +251,8 @@ const INITIAL_FAMILY: FamilyMember[] = [
     name: 'Mia (Daughter)',
     avatar: '👧',
     balance: 0,
+    bankBalance: 0,
+    cashBalance: 0,
     totalExpense: 0,
     totalContribution: 0,
     monthlySummary: 'School utility & online learning classes'
@@ -551,10 +561,15 @@ export const FinancialProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         updatedFam = updatedFam.map((fam) => {
           if (fam.name === tx.person) {
             const diff = tx.amount * multiplier;
+            const isCash = tx.account === 'Cash Wallet';
+            const newBank = isCash ? fam.bankBalance : fam.bankBalance + diff;
+            const newCash = isCash ? fam.cashBalance + diff : fam.cashBalance;
             return {
               ...fam,
               totalContribution: fam.totalContribution + diff,
-              balance: fam.balance + diff
+              bankBalance: newBank,
+              cashBalance: newCash,
+              balance: newBank + newCash
             };
           }
           return fam;
@@ -578,10 +593,15 @@ export const FinancialProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         updatedFam = updatedFam.map((fam) => {
           if (fam.name === tx.person) {
             const diff = tx.amount * multiplier;
+            const isCash = tx.account === 'Cash Wallet';
+            const newBank = isCash ? fam.bankBalance : fam.bankBalance - diff;
+            const newCash = isCash ? fam.cashBalance - diff : fam.cashBalance;
             return {
               ...fam,
               totalExpense: fam.totalExpense + diff,
-              balance: fam.balance - diff
+              bankBalance: newBank,
+              cashBalance: newCash,
+              balance: newBank + newCash
             };
           }
           return fam;
@@ -610,9 +630,15 @@ export const FinancialProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         updatedFam = updatedFam.map((fam) => {
           if (fam.name === tx.person) {
             const diff = tx.amount * multiplier;
+            const fromAcc = tx.fromAccount || tx.account;
+            const isCash = fromAcc === 'Cash Wallet' || tx.paymentMode === 'Cash';
+            const newBank = isCash ? fam.bankBalance : fam.bankBalance - diff;
+            const newCash = isCash ? fam.cashBalance - diff : fam.cashBalance;
             return {
               ...fam,
-              balance: fam.balance - diff
+              bankBalance: newBank,
+              cashBalance: newCash,
+              balance: newBank + newCash
             };
           }
           return fam;
@@ -624,9 +650,14 @@ export const FinancialProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         updatedFam = updatedFam.map((fam) => {
           if (fam.name === tx.toPerson) {
             const diff = tx.amount * multiplier;
+            const isCash = tx.toAccount === 'Cash Wallet' || tx.paymentMode === 'Cash';
+            const newBank = isCash ? fam.bankBalance : fam.bankBalance + diff;
+            const newCash = isCash ? fam.cashBalance + diff : fam.cashBalance;
             return {
               ...fam,
-              balance: fam.balance + diff
+              bankBalance: newBank,
+              cashBalance: newCash,
+              balance: newBank + newCash
             };
           }
           return fam;
@@ -838,7 +869,9 @@ export const FinancialProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     const newMember: FamilyMember = {
       ...member,
       id: `fam-${Date.now()}`,
-      startingBalance: member.balance,
+      startingBalance: member.bankBalance + member.cashBalance,
+      startingBankBalance: member.bankBalance,
+      startingCashBalance: member.cashBalance,
       totalExpense: 0,
       totalContribution: 0
     };
@@ -850,14 +883,16 @@ export const FinancialProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       prev.map((fam) => (fam.id === id ? { 
         ...fam, 
         ...updatedFields, 
-        startingBalance: updatedFields.balance 
+        startingBalance: updatedFields.bankBalance + updatedFields.cashBalance,
+        startingBankBalance: updatedFields.bankBalance,
+        startingCashBalance: updatedFields.cashBalance
       } : fam))
     );
 
     const newNotif: Notification = {
       id: `notif-${Date.now()}`,
       title: 'Family Member Updated',
-      message: `Profile settings for "${updatedFields.name}" modified. Opening balance set to ${formatCurrency(updatedFields.balance)}.`,
+      message: `Profile settings for "${updatedFields.name}" modified. Opening balance set to ${formatCurrency(updatedFields.bankBalance + updatedFields.cashBalance)}.`,
       time: 'Just now',
       read: false,
       type: 'info'
@@ -1026,10 +1061,23 @@ export const FinancialProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       const startingBal = f.startingBalance !== undefined 
         ? f.startingBalance 
         : (f.balance - (f.totalContribution || 0) + (f.totalExpense || 0));
+
+      const startingBank = f.startingBankBalance !== undefined 
+        ? f.startingBankBalance 
+        : startingBal;
+
+      const startingCash = f.startingCashBalance !== undefined 
+        ? f.startingCashBalance 
+        : 0;
+
       return {
         ...f,
-        balance: startingBal,
-        startingBalance: startingBal,
+        bankBalance: startingBank,
+        cashBalance: startingCash,
+        balance: startingBank + startingCash,
+        startingBalance: startingBank + startingCash,
+        startingBankBalance: startingBank,
+        startingCashBalance: startingCash,
         totalExpense: 0,
         totalContribution: 0
       };
