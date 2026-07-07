@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useFinancials, FamilyMember } from '@/context/financial-context';
 import { 
   UserPlus, 
@@ -27,7 +27,14 @@ export default function FamilyView() {
     deleteFamilyMember 
   } = useFinancials();
 
-  const [selectedMember, setSelectedMember] = useState<string>('Emma (Wife)');
+  const [selectedMember, setSelectedMember] = useState<string>('');
+
+  // Auto-select first member when family list is loaded
+  useEffect(() => {
+    if (family.length > 0 && (!selectedMember || !family.some(f => f.name === selectedMember))) {
+      setSelectedMember(family[0].name);
+    }
+  }, [family, selectedMember]);
 
   // Local Modal States
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -44,7 +51,13 @@ export default function FamilyView() {
   const activeMember = family.find(f => f.name === selectedMember) || family[0];
 
   // Filter transactions for this member
-  const memberTransactions = transactions.filter(t => t.person === selectedMember || (t.type === 'transfer' && t.toPerson === selectedMember));
+  const memberTransactions = transactions.filter(t => {
+    if (!selectedMember) return false;
+    const matchesPerson = t.person === selectedMember || 
+      (selectedMember.toLowerCase() === 'murtaza' && t.person === 'Self');
+    const matchesToPerson = t.type === 'transfer' && t.toPerson === selectedMember;
+    return matchesPerson || matchesToPerson;
+  });
 
   // Distribute Pocket Money simulation
   const handleDistributePocketMoney = (name: string, amount: number) => {
