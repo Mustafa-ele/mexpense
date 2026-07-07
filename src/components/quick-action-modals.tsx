@@ -20,7 +20,8 @@ export default function QuickActionModals() {
     addFamilyMember,
     accounts,
     family,
-    categories
+    categories,
+    loggedInUser
   } = useFinancials();
 
   // Common styles
@@ -45,6 +46,8 @@ export default function QuickActionModals() {
   const [trDesc, setTrDesc] = useState('Inter-account transfer');
   const [transferToPerson, setTransferToPerson] = useState('Self');
   const [transferFromPerson, setTransferFromPerson] = useState('Self');
+  const [trFromPocket, setTrFromPocket] = useState<'bank' | 'cash'>('bank');
+  const [trToPocket, setTrToPocket] = useState<'bank' | 'cash'>('bank');
 
   // 3. Loan Form
   const [loanPerson, setLoanPerson] = useState('');
@@ -89,6 +92,8 @@ export default function QuickActionModals() {
         setTrDesc(editingTransaction.description);
         setTransferToPerson(editingTransaction.toPerson || 'Self');
         setTransferFromPerson(editingTransaction.person || 'Self');
+        setTrFromPocket(editingTransaction.fromPocket || 'bank');
+        setTrToPocket(editingTransaction.toPocket || 'bank');
         setIsTransferOpen(true);
       }
     }
@@ -107,6 +112,8 @@ export default function QuickActionModals() {
     setTxAmount('');
     setTxDesc('');
     setTrAmount('');
+    setTrFromPocket('bank');
+    setTrToPocket('bank');
     setLoanPerson('');
     setLoanAmount('');
     setFamName('');
@@ -177,17 +184,19 @@ export default function QuickActionModals() {
       person: transferFromPerson,
       category: 'Transfer',
       account: isInternal ? 'Internal' : trSource,
-      paymentMode: isInternal ? 'Internal Shift' : 'Net Banking',
+      paymentMode: isInternal ? (trFromPocket === 'cash' ? 'Cash' : 'Net Banking') : (trSource === 'Cash Wallet' ? 'Cash' : 'Net Banking'),
       description: transferToPerson === 'Self' 
         ? `Transferred from ${transferFromPerson} to ${trDest} (${trSource}). ${trDesc}`
         : isInternal
-        ? `Transferred allowance from ${transferFromPerson} to ${transferToPerson}. ${trDesc}`
-        : `Transferred from ${transferFromPerson} to ${transferToPerson} (${trSource}). ${trDesc}`,
+        ? `Transferred allowance from ${transferFromPerson} (${trFromPocket === 'cash' ? 'Cash' : 'Bank'}) to ${transferToPerson} (${trToPocket === 'cash' ? 'Cash' : 'Bank'}). ${trDesc}`
+        : `Transferred from ${transferFromPerson} (${trFromPocket === 'cash' ? 'Cash' : 'Bank'}) to ${transferToPerson} (${trToPocket === 'cash' ? 'Cash' : 'Bank'}) via ${trSource}. ${trDesc}`,
       amount: Number(trAmount),
       type: 'transfer' as const,
       fromAccount: isInternal ? 'Internal' : trSource,
       toAccount: transferToPerson === 'Self' ? trDest : undefined,
-      toPerson: transferToPerson !== 'Self' ? transferToPerson : undefined
+      toPerson: transferToPerson !== 'Self' ? transferToPerson : undefined,
+      fromPocket: trFromPocket,
+      toPocket: trToPocket
     };
 
     if (editingTransaction) {
@@ -418,6 +427,28 @@ export default function QuickActionModals() {
                       {family.map(f => <option key={f.id} value={f.name}>{f.name}</option>)}
                     </select>
                   </div>
+
+                  {/* Render From Pocket selector if sender is not admin */}
+                  {!(transferFromPerson === 'Self' || (loggedInUser && transferFromPerson.toLowerCase() === loggedInUser.toLowerCase())) && (
+                    <div className="space-y-1 col-span-1">
+                      <label className="text-[10px] uppercase font-bold text-slate-450">From Sender Pocket</label>
+                      <select value={trFromPocket} onChange={(e) => setTrFromPocket(e.target.value as 'bank' | 'cash')} className="w-full glass-input bg-transparent">
+                        <option value="bank">Bank Pocket</option>
+                        <option value="cash">Cash Pocket</option>
+                      </select>
+                    </div>
+                  )}
+
+                  {/* Render To Pocket selector if recipient is not admin */}
+                  {!(transferToPerson === 'Self' || (loggedInUser && transferToPerson.toLowerCase() === loggedInUser.toLowerCase())) && (
+                    <div className="space-y-1 col-span-1">
+                      <label className="text-[10px] uppercase font-bold text-slate-450">To Recipient Pocket</label>
+                      <select value={trToPocket} onChange={(e) => setTrToPocket(e.target.value as 'bank' | 'cash')} className="w-full glass-input bg-transparent">
+                        <option value="bank">Bank Pocket</option>
+                        <option value="cash">Cash Pocket</option>
+                      </select>
+                    </div>
+                  )}
                 </div>
 
                 <div className="space-y-1">
@@ -426,7 +457,8 @@ export default function QuickActionModals() {
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
-                  {(transferFromPerson === 'Self' || transferToPerson === 'Self') ? (
+                  {(transferFromPerson === 'Self' || (loggedInUser && transferFromPerson.toLowerCase() === loggedInUser.toLowerCase()) || 
+                    transferToPerson === 'Self' || (loggedInUser && transferToPerson.toLowerCase() === loggedInUser.toLowerCase())) ? (
                     <div className="space-y-1 col-span-2 sm:col-span-1">
                       <label className="text-[10px] uppercase font-bold text-slate-450">From Source (Paying Account)</label>
                       <select value={trSource} onChange={(e) => setTrSource(e.target.value)} className="w-full glass-input bg-transparent">
