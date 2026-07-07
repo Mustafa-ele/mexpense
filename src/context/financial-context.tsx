@@ -26,6 +26,7 @@ export interface Account {
   name: string;
   type: 'cash' | 'bank' | 'upi' | 'credit';
   balance: number;
+  startingBalance?: number;
   todayChange: number;
   lastUpdated: string;
 }
@@ -54,6 +55,7 @@ export interface FamilyMember {
   name: string;
   avatar: string; // Emoji
   balance: number;
+  startingBalance?: number;
   totalExpense: number;
   totalContribution: number;
   monthlySummary: string;
@@ -836,6 +838,7 @@ export const FinancialProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     const newMember: FamilyMember = {
       ...member,
       id: `fam-${Date.now()}`,
+      startingBalance: member.balance,
       totalExpense: 0,
       totalContribution: 0
     };
@@ -844,7 +847,11 @@ export const FinancialProvider: React.FC<{ children: React.ReactNode }> = ({ chi
 
   const editFamilyMember = (id: string, updatedFields: Omit<FamilyMember, 'id' | 'totalExpense' | 'totalContribution'>) => {
     setFamily((prev) => 
-      prev.map((fam) => (fam.id === id ? { ...fam, ...updatedFields } : fam))
+      prev.map((fam) => (fam.id === id ? { 
+        ...fam, 
+        ...updatedFields, 
+        startingBalance: updatedFields.balance 
+      } : fam))
     );
 
     const newNotif: Notification = {
@@ -1009,8 +1016,24 @@ export const FinancialProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   };
 
   const reconcileAllBalances = () => {
-    let tempAccs = INITIAL_ACCOUNTS.map(a => ({ ...a, balance: 0, todayChange: 0 }));
-    let tempFam = INITIAL_FAMILY.map(f => ({ ...f, balance: 0, totalExpense: 0, totalContribution: 0 }));
+    let tempAccs: Account[] = accounts.map(a => ({
+      ...a,
+      balance: a.startingBalance !== undefined ? a.startingBalance : 0,
+      todayChange: 0
+    }));
+
+    let tempFam: FamilyMember[] = family.map(f => {
+      const startingBal = f.startingBalance !== undefined 
+        ? f.startingBalance 
+        : (f.balance - (f.totalContribution || 0) + (f.totalExpense || 0));
+      return {
+        ...f,
+        balance: startingBal,
+        startingBalance: startingBal,
+        totalExpense: 0,
+        totalContribution: 0
+      };
+    });
 
     const sortedTxs = [...transactions].reverse();
 
