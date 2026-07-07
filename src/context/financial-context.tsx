@@ -545,6 +545,11 @@ export const FinancialProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       return name === 'Self' || (loggedInUser && name.toLowerCase() === loggedInUser.toLowerCase());
     };
 
+    const isTargetMember = (famName: string, personName: string) => {
+      if (!personName || personName === 'Self') return false;
+      return famName.toLowerCase() === personName.toLowerCase();
+    };
+
     if (tx.type === 'income') {
       updatedAccs = updatedAccs.map((acc) => {
         if (acc.name === tx.account) {
@@ -559,24 +564,22 @@ export const FinancialProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         return acc;
       });
 
-      if (!isAdmin(tx.person)) {
-        updatedFam = updatedFam.map((fam) => {
-          if (fam.name === tx.person) {
-            const diff = tx.amount * multiplier;
-            const isCash = tx.account === 'Cash Wallet';
-            const newBank = isCash ? fam.bankBalance : fam.bankBalance + diff;
-            const newCash = isCash ? fam.cashBalance + diff : fam.cashBalance;
-            return {
-              ...fam,
-              totalContribution: fam.totalContribution + diff,
-              bankBalance: newBank,
-              cashBalance: newCash,
-              balance: newBank + newCash
-            };
-          }
-          return fam;
-        });
-      }
+      updatedFam = updatedFam.map((fam) => {
+        if (isTargetMember(fam.name, tx.person)) {
+          const diff = tx.amount * multiplier;
+          const isCash = tx.account === 'Cash Wallet';
+          const newBank = isCash ? fam.bankBalance : fam.bankBalance + diff;
+          const newCash = isCash ? fam.cashBalance + diff : fam.cashBalance;
+          return {
+            ...fam,
+            totalContribution: fam.totalContribution + diff,
+            bankBalance: newBank,
+            cashBalance: newCash,
+            balance: newBank + newCash
+          };
+        }
+        return fam;
+      });
     } else if (tx.type === 'expense') {
       updatedAccs = updatedAccs.map((acc) => {
         if (acc.name === tx.account) {
@@ -591,24 +594,22 @@ export const FinancialProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         return acc;
       });
 
-      if (!isAdmin(tx.person)) {
-        updatedFam = updatedFam.map((fam) => {
-          if (fam.name === tx.person) {
-            const diff = tx.amount * multiplier;
-            const isCash = tx.account === 'Cash Wallet';
-            const newBank = isCash ? fam.bankBalance : fam.bankBalance - diff;
-            const newCash = isCash ? fam.cashBalance - diff : fam.cashBalance;
-            return {
-              ...fam,
-              totalExpense: fam.totalExpense + diff,
-              bankBalance: newBank,
-              cashBalance: newCash,
-              balance: newBank + newCash
-            };
-          }
-          return fam;
-        });
-      }
+      updatedFam = updatedFam.map((fam) => {
+        if (isTargetMember(fam.name, tx.person)) {
+          const diff = tx.amount * multiplier;
+          const isCash = tx.account === 'Cash Wallet';
+          const newBank = isCash ? fam.bankBalance : fam.bankBalance - diff;
+          const newCash = isCash ? fam.cashBalance - diff : fam.cashBalance;
+          return {
+            ...fam,
+            totalExpense: fam.totalExpense + diff,
+            bankBalance: newBank,
+            cashBalance: newCash,
+            balance: newBank + newCash
+          };
+        }
+        return fam;
+      });
     } else if (tx.type === 'transfer') {
       // 1. Debit Source Account (only if Sender is Self/Admin)
       if (isAdmin(tx.person)) {
