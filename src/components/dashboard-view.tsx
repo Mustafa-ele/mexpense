@@ -165,7 +165,7 @@ export default function DashboardView() {
 
   // 1. Calculate Summary Cards totals
   const totalBalance = accounts.reduce((acc, curr) => acc + curr.balance, 0);
-  const cashBalance = (accounts.find(a => a.type === 'cash')?.balance || 0) + family.reduce((acc, curr) => acc + (curr.cashBalance || 0), 0);
+  const cashBalance = accounts.find(a => a.type === 'cash')?.balance || 0;
   
   // Bank + UPI
   const bankBalance = accounts.filter(a => a.type === 'bank' || a.type === 'upi').reduce((acc, curr) => acc + curr.balance, 0);

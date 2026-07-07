@@ -669,8 +669,22 @@ export const FinancialProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         });
       }
 
-      // 4. Credit Destination Account (if transferring to Self/Account)
-      if (tx.toAccount) {
+      // 4. Credit Destination Account (if transferring to Self/Account or any Cash pocket)
+      const isToCash = tx.toPocket === 'cash' || (!tx.toPocket && tx.toAccount === 'Cash Wallet');
+      if (isToCash) {
+        updatedAccs = updatedAccs.map((acc) => {
+          if (acc.name === 'Cash Wallet') {
+            const diff = tx.amount * multiplier;
+            return {
+              ...acc,
+              balance: acc.balance + diff,
+              todayChange: acc.todayChange + diff,
+              lastUpdated: todayStr
+            };
+          }
+          return acc;
+        });
+      } else if (tx.toAccount) {
         updatedAccs = updatedAccs.map((acc) => {
           if (acc.name === tx.toAccount) {
             const diff = tx.amount * multiplier;
