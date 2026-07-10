@@ -631,9 +631,13 @@ export const FinancialProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         });
       }
 
+      const isInternal = tx.account === 'Internal' || tx.fromAccount === 'Internal';
+
       // 2. Debit Sender (if family member)
       updatedFam = updatedFam.map((fam) => {
-        if (isTargetMember(fam.name, tx.person)) {
+        const isSender = isTargetMember(fam.name, tx.person);
+        const shouldDebit = isSender && (!isAdmin(tx.person) || !isInternal);
+        if (shouldDebit) {
           const diff = tx.amount * multiplier;
           const isCashPocket = tx.fromPocket === 'cash' || 
             (!tx.fromPocket && ((tx.fromAccount || tx.account) === 'Cash Wallet' || tx.paymentMode === 'Cash'));
@@ -653,7 +657,9 @@ export const FinancialProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       // 3. Credit Recipient (if family member)
       if (tx.toPerson) {
         updatedFam = updatedFam.map((fam) => {
-          if (isTargetMember(fam.name, tx.toPerson)) {
+          const isRecipient = isTargetMember(fam.name, tx.toPerson);
+          const shouldCredit = isRecipient && (!isAdmin(tx.toPerson) || !isInternal);
+          if (shouldCredit) {
             const diff = tx.amount * multiplier;
             const isCashPocket = tx.toPocket === 'cash' || 
               (!tx.toPocket && (tx.toAccount === 'Cash Wallet' || tx.paymentMode === 'Cash'));
