@@ -614,16 +614,27 @@ export const FinancialProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         return fam;
       });
     } else if (tx.type === 'transfer') {
-      // 1. Debit Source Account (only if Sender is Self/Admin)
-      if (isAdmin(tx.person)) {
-        const sourceAcc = tx.fromAccount || tx.account;
+      // 1. Update physical accounts ONLY if it is an ATM withdrawal (Bank Account to Cash Wallet/Pocket)
+      const isATMWithdrawal = (tx.fromAccount === 'Bank Account' || tx.account === 'Bank Account') && 
+                              (tx.toPocket === 'cash' || tx.toAccount === 'Cash Wallet');
+      
+      if (isATMWithdrawal) {
         updatedAccs = updatedAccs.map((acc) => {
-          if (acc.name === sourceAcc) {
+          if (acc.name === 'Bank Account') {
             const diff = tx.amount * multiplier;
             return {
               ...acc,
               balance: acc.balance - diff,
               todayChange: acc.todayChange - diff,
+              lastUpdated: todayStr
+            };
+          }
+          if (acc.name === 'Cash Wallet') {
+            const diff = tx.amount * multiplier;
+            return {
+              ...acc,
+              balance: acc.balance + diff,
+              todayChange: acc.todayChange + diff,
               lastUpdated: todayStr
             };
           }
@@ -656,9 +667,10 @@ export const FinancialProvider: React.FC<{ children: React.ReactNode }> = ({ chi
 
       // 3. Credit Recipient (if family member)
       if (tx.toPerson) {
+        const toPersonName = tx.toPerson;
         updatedFam = updatedFam.map((fam) => {
-          const isRecipient = isTargetMember(fam.name, tx.toPerson);
-          const shouldCredit = isRecipient && (!isAdmin(tx.toPerson) || !isInternal);
+          const isRecipient = isTargetMember(fam.name, toPersonName);
+          const shouldCredit = isRecipient && (!isAdmin(toPersonName) || !isInternal);
           if (shouldCredit) {
             const diff = tx.amount * multiplier;
             const isCashPocket = tx.toPocket === 'cash' || 
@@ -674,36 +686,6 @@ export const FinancialProvider: React.FC<{ children: React.ReactNode }> = ({ chi
             };
           }
           return fam;
-        });
-      }
-
-      // 4. Credit Destination Account (if transferring to Self/Account or any Cash pocket)
-      const isToCash = tx.toPocket === 'cash' || (!tx.toPocket && tx.toAccount === 'Cash Wallet');
-      if (isToCash) {
-        updatedAccs = updatedAccs.map((acc) => {
-          if (acc.name === 'Cash Wallet') {
-            const diff = tx.amount * multiplier;
-            return {
-              ...acc,
-              balance: acc.balance + diff,
-              todayChange: acc.todayChange + diff,
-              lastUpdated: todayStr
-            };
-          }
-          return acc;
-        });
-      } else if (tx.toAccount) {
-        updatedAccs = updatedAccs.map((acc) => {
-          if (acc.name === tx.toAccount) {
-            const diff = tx.amount * multiplier;
-            return {
-              ...acc,
-              balance: acc.balance + diff,
-              todayChange: acc.todayChange + diff,
-              lastUpdated: todayStr
-            };
-          }
-          return acc;
         });
       }
     }
