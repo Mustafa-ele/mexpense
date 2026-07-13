@@ -116,6 +116,8 @@ interface FinancialContextType {
   // Transaction Editing UI state
   editingTransaction: Transaction | null;
   setEditingTransaction: (tx: Transaction | null) => void;
+  editingLoan: Loan | null;
+  setEditingLoan: (l: Loan | null) => void;
 
   // Actions
   addTransaction: (tx: Omit<Transaction, 'id' | 'status'> & { status?: 'Cleared' | 'Pending' }) => void;
@@ -123,13 +125,14 @@ interface FinancialContextType {
   deleteTransaction: (id: string) => void;
   
   addLoan: (loan: Omit<Loan, 'id' | 'status' | 'installments'>) => void;
+  editLoan: (id: string, loan: Omit<Loan, 'id' | 'status' | 'installments'>) => void;
   repayLoan: (loanId: string, installment: Omit<LoanInstallment, 'id'>) => void;
   triggerLoanReminder: (loanId: string) => void;
+  deleteLoan: (id: string) => void;
 
   addFamilyMember: (member: Omit<FamilyMember, 'id' | 'totalExpense' | 'totalContribution'>) => void;
   editFamilyMember: (id: string, member: Omit<FamilyMember, 'id' | 'totalExpense' | 'totalContribution'>) => void;
   deleteFamilyMember: (id: string) => void;
-  deleteLoan: (id: string) => void;
   
   addCategory: (cat: Omit<Category, 'id'>) => void;
   editCategory: (id: string, cat: Omit<Category, 'id'>) => void;
@@ -291,6 +294,7 @@ export const FinancialProvider: React.FC<{ children: React.ReactNode }> = ({ chi
 
   // Editing transaction
   const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null);
+  const [editingLoan, setEditingLoan] = useState<Loan | null>(null);
 
   const isHydrated = useRef(false);
   const lastSyncedData = useRef<string>('');
@@ -799,6 +803,22 @@ export const FinancialProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     });
   };
 
+  const editLoan = (id: string, updatedFields: Omit<Loan, 'id' | 'status' | 'installments'>) => {
+    setLoans((prev) => 
+      prev.map((l) => (l.id === id ? { ...l, ...updatedFields } : l))
+    );
+
+    const newNotif: Notification = {
+      id: `notif-${Date.now()}`,
+      title: 'Loan Record Updated',
+      message: `Loan settings for "${updatedFields.person}" modified.`,
+      time: 'Just now',
+      read: false,
+      type: 'info'
+    };
+    setNotifications((prev) => [newNotif, ...prev]);
+  };
+
   const repayLoan = (loanId: string, installment: Omit<LoanInstallment, 'id'>) => {
     const instId = `inst-${Date.now()}`;
     const newInst: LoanInstallment = {
@@ -1253,10 +1273,13 @@ export const FinancialProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         setIsFamilyOpen,
         editingTransaction,
         setEditingTransaction,
+        editingLoan,
+        setEditingLoan,
         addTransaction,
         editTransaction,
         deleteTransaction,
         addLoan,
+        editLoan,
         repayLoan,
         triggerLoanReminder,
         addFamilyMember,

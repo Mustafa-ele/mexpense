@@ -14,9 +14,11 @@ export default function QuickActionModals() {
     isLoanOpen, setIsLoanOpen,
     isFamilyOpen, setIsFamilyOpen,
     editingTransaction, setEditingTransaction,
+    editingLoan, setEditingLoan,
     addTransaction,
     editTransaction,
     addLoan,
+    editLoan,
     addFamilyMember,
     accounts,
     family,
@@ -97,8 +99,16 @@ export default function QuickActionModals() {
         setTrToPocket(editingTransaction.toPocket || 'bank');
         setIsTransferOpen(true);
       }
+    } else if (editingLoan) {
+      setLoanPerson(editingLoan.person);
+      setLoanAmount(editingLoan.amount.toString());
+      setLoanDate(editingLoan.date);
+      setLoanDueDate(editingLoan.dueDate);
+      setLoanType(editingLoan.type);
+      setLoanFamilyMember(editingLoan.familyMember || 'Self');
+      setIsLoanOpen(true);
     }
-  }, [editingTransaction, setIsExpenseOpen, setIsIncomeOpen, setIsTransferOpen]);
+  }, [editingTransaction, editingLoan, setIsExpenseOpen, setIsIncomeOpen, setIsTransferOpen, setIsLoanOpen]);
 
   const handleClose = (type: 'expense' | 'income' | 'transfer' | 'loan' | 'family') => {
     if (type === 'expense') setIsExpenseOpen(false);
@@ -108,6 +118,7 @@ export default function QuickActionModals() {
     else if (type === 'family') setIsFamilyOpen(false);
     
     setEditingTransaction(null);
+    setEditingLoan(null);
 
     // Reset forms
     setTxAmount('');
@@ -227,14 +238,20 @@ export default function QuickActionModals() {
       return;
     }
 
-    addLoan({
+    const payload = {
       person: loanPerson,
       amount: Number(loanAmount),
       type: loanType,
       date: loanDate,
       dueDate: loanDueDate,
       familyMember: loanFamilyMember
-    });
+    };
+
+    if (editingLoan) {
+      editLoan(editingLoan.id, payload);
+    } else {
+      addLoan(payload);
+    }
 
     triggerCelebration();
     handleClose('loan');
@@ -515,7 +532,7 @@ export default function QuickActionModals() {
               <div className="flex justify-between items-center">
                 <div className="flex items-center gap-2 text-indigo-500 font-bold text-sm">
                   <Users size={18} />
-                  <span>Log Debt/Lending Entry</span>
+                  <span>{editingLoan ? 'Edit Debt/Lending Record' : 'Log Debt/Lending Entry'}</span>
                 </div>
                 <button onClick={() => handleClose('loan')} className="p-1 rounded hover:bg-slate-100 dark:hover:bg-slate-900 text-slate-400">
                   <X size={16} />
@@ -561,7 +578,7 @@ export default function QuickActionModals() {
                   </div>
                 </div>
                 <button onClick={handleLoanSubmit} className="w-full py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl shadow-md transition-all">
-                  Confirm Loan Ledger
+                  {editingLoan ? 'Save Changes' : 'Confirm Loan Ledger'}
                 </button>
               </div>
             </motion.div>

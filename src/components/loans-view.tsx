@@ -17,12 +17,22 @@ import {
   History,
   X,
   Sparkles,
-  Trash2
+  Trash2,
+  Edit2
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 export default function LoansView() {
-  const { loans, repayLoan, deleteLoan, triggerLoanReminder, setIsLoanOpen, accounts, formatCurrency } = useFinancials();
+  const { 
+    loans, 
+    repayLoan, 
+    deleteLoan, 
+    triggerLoanReminder, 
+    setIsLoanOpen, 
+    setEditingLoan,
+    accounts, 
+    formatCurrency 
+  } = useFinancials();
   const [filter, setFilter] = useState<'all' | 'given' | 'taken' | 'pending'>('all');
 
   // Expanded loan details state
@@ -274,6 +284,16 @@ export default function LoansView() {
                             {loan.status === 'Completed' && (
                               <span className="text-[10px] font-bold text-slate-400 dark:text-slate-550 mr-1.5">Fully Settled</span>
                             )}
+                            <button
+                              onClick={() => {
+                                setEditingLoan(loan);
+                                setIsLoanOpen(true);
+                              }}
+                              title="Edit Loan Record"
+                              className="p-1.5 rounded-lg border border-transparent hover:border-slate-200 dark:hover:border-white/5 hover:bg-slate-100 dark:hover:bg-slate-800 text-blue-500 transition-all"
+                            >
+                              <Edit2 size={13} />
+                            </button>
                             <button
                               onClick={() => {
                                 const confirm = window.confirm(`Are you sure you want to delete this loan record for "${loan.person}"?`);
