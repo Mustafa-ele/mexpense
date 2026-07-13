@@ -31,7 +31,15 @@ const EMOJI_OPTIONS = [
 ];
 
 export default function CategoriesView() {
-  const { transactions, categories, addCategory, editCategory, deleteCategory, formatCurrency } = useFinancials();
+  const { 
+    transactions, 
+    categories, 
+    addCategory, 
+    editCategory, 
+    deleteCategory, 
+    currentMonth, 
+    formatCurrency 
+  } = useFinancials();
 
   // Modal States
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -44,13 +52,33 @@ export default function CategoriesView() {
   const [catColor, setCatColor] = useState('bg-slate-500');
   const [catLimit, setCatLimit] = useState('');
 
-  // Calculate actual spending per category dynamically for current calendar month
-  const currentMonthPrefix = new Date().toISOString().slice(0, 7);
+  // Helper to get YYYY-MM prefix from "Month YYYY" string
+  const getMonthPrefix = (monthStr: string) => {
+    try {
+      const parts = monthStr.split(' ');
+      if (parts.length === 2) {
+        const monthName = parts[0];
+        const year = parts[1];
+        const date = new Date(Date.parse(`${monthName} 1, ${year}`));
+        if (!isNaN(date.getTime())) {
+          const mm = String(date.getMonth() + 1).padStart(2, '0');
+          return `${year}-${mm}`;
+        }
+      }
+    } catch (e) {}
+    return new Date().toISOString().slice(0, 7);
+  };
+
+  // Calculate actual spending and incomes per category dynamically for selected month
+  const currentMonthPrefix = getMonthPrefix(currentMonth);
   const currentMonthExpenses = transactions.filter(t => t.date.startsWith(currentMonthPrefix) && t.type === 'expense');
+  const currentMonthIncomes = transactions.filter(t => t.date.startsWith(currentMonthPrefix) && t.type === 'income');
 
   const categorySpent: Record<string, number> = {};
+  const categoryReceived: Record<string, number> = {};
   categories.forEach(cat => {
     categorySpent[cat.name] = currentMonthExpenses.filter(t => t.category === cat.name).reduce((sum, curr) => sum + curr.amount, 0);
+    categoryReceived[cat.name] = currentMonthIncomes.filter(t => t.category === cat.name).reduce((sum, curr) => sum + curr.amount, 0);
   });
 
   const handleOpenAdd = () => {
@@ -127,12 +155,14 @@ export default function CategoriesView() {
       <div className="space-y-3">
         {categories.map((cat) => {
           const spent = categorySpent[cat.name] || 0;
-          const ratio = (spent / cat.limit) * 100;
+          const received = categoryReceived[cat.name] || 0;
+          const totalFlow = spent + received;
+          const ratio = (totalFlow / cat.limit) * 100;
           if (ratio >= 80 && ratio < 100) {
             return (
               <div key={cat.id} className="flex items-center gap-3 p-4 bg-amber-50 dark:bg-amber-950/20 border border-amber-200/50 dark:border-amber-900/30 rounded-2xl text-xs font-semibold text-amber-700 dark:text-amber-400">
                 <AlertTriangle size={16} className="shrink-0 animate-bounce" />
-                <span>Budget Alert: category "{cat.name}" has reached {ratio.toFixed(0)}% of its limit ({formatCurrency(spent)} spent of {formatCurrency(cat.limit)}).</span>
+                <span>Budget Alert: category "{cat.name}" has reached {ratio.toFixed(0)}% of its limit ({formatCurrency(totalFlow)} activity of {formatCurrency(cat.limit)}).</span>
               </div>
             );
           }
@@ -140,7 +170,7 @@ export default function CategoriesView() {
             return (
               <div key={cat.id} className="flex items-center gap-3 p-4 bg-rose-50 dark:bg-rose-950/20 border border-rose-200/50 dark:border-rose-900/30 rounded-2xl text-xs font-semibold text-rose-700 dark:text-rose-455">
                 <AlertTriangle size={16} className="shrink-0 animate-pulse" />
-                <span>Over-Budget Alert: category "{cat.name}" has exceeded its limit ({formatCurrency(spent)} spent of {formatCurrency(cat.limit)}).</span>
+                <span>Over-Budget Alert: category "{cat.name}" has exceeded its limit ({formatCurrency(totalFlow)} activity of {formatCurrency(cat.limit)}).</span>
               </div>
             );
           }
@@ -152,7 +182,9 @@ export default function CategoriesView() {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {categories.map((cat) => {
           const spent = categorySpent[cat.name] || 0;
-          const ratio = (spent / cat.limit) * 100;
+          const received = categoryReceived[cat.name] || 0;
+          const totalFlow = spent + received;
+          const ratio = (totalFlow / cat.limit) * 100;
           const progressColor = ratio >= 100 ? 'bg-rose-500' : ratio >= 80 ? 'bg-amber-500' : cat.color;
 
           return (
@@ -185,7 +217,12 @@ export default function CategoriesView() {
               {/* Progress and Caps */}
               <div className="space-y-1">
                 <div className="flex justify-between text-[10px] font-bold text-slate-500">
-                  <span>Spent: {formatCurrency(spent)}</span>
+                  <span>
+                    {spent > 0 && `Spent: ${formatCurrency(spent)}`}
+                    {spent > 0 && received > 0 && ` | `}
+                    {received > 0 && `Recd: ${formatCurrency(received)}`}
+                    {spent === 0 && received === 0 && `No activity`}
+                  </span>
                   <span>Limit: {formatCurrency(cat.limit)}</span>
                 </div>
                 {/* Progress bar container */}
