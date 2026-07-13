@@ -55,6 +55,7 @@ export default function QuickActionModals() {
   const [loanDate, setLoanDate] = useState(new Date().toISOString().split('T')[0]);
   const [loanDueDate, setLoanDueDate] = useState('');
   const [loanType, setLoanType] = useState<'given' | 'taken'>('given');
+  const [loanFamilyMember, setLoanFamilyMember] = useState('Self');
 
   // 4. Family Form
   const [famName, setFamName] = useState('');
@@ -121,6 +122,7 @@ export default function QuickActionModals() {
     setFamBankBalance('');
     setFamCashBalance('');
     setFamSummary('');
+    setLoanFamilyMember('Self');
   };
 
   // Trigger celebration on success
@@ -230,7 +232,8 @@ export default function QuickActionModals() {
       amount: Number(loanAmount),
       type: loanType,
       date: loanDate,
-      dueDate: loanDueDate
+      dueDate: loanDueDate,
+      familyMember: loanFamilyMember
     });
 
     triggerCelebration();
@@ -535,6 +538,13 @@ export default function QuickActionModals() {
                 <div className="space-y-1">
                   <label className="text-[10px] uppercase font-bold text-slate-450">Contact Person Name</label>
                   <input type="text" placeholder="e.g. Johnathan Miller" value={loanPerson} onChange={(e) => setLoanPerson(e.target.value)} className="w-full glass-input" />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[10px] uppercase font-bold text-slate-450">Family Member Beneficiary</label>
+                  <select value={loanFamilyMember} onChange={(e) => setLoanFamilyMember(e.target.value)} className="w-full glass-input bg-transparent">
+                    <option value="Self">Self (General Household)</option>
+                    {family.map(f => <option key={f.id} value={f.name}>{f.name}</option>)}
+                  </select>
                 </div>
                 <div className="space-y-1">
                   <label className="text-[10px] uppercase font-bold text-slate-450">Principal Amount</label>

@@ -50,6 +50,7 @@ export interface Loan {
   dueDate: string;
   status: 'Pending' | 'Completed';
   installments: LoanInstallment[];
+  familyMember?: string;
 }
 
 export interface FamilyMember {
@@ -783,13 +784,16 @@ export const FinancialProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     setLoans((prev) => [newLoan, ...prev]);
 
     // Record initial transaction outflow/inflow
+    const assocPerson = loan.familyMember && loan.familyMember !== 'Self' ? loan.familyMember : loan.person;
     addTransaction({
       date: loan.date,
-      person: loan.person,
+      person: assocPerson,
       category: loan.type === 'given' ? 'Loan Given' : 'Loan Taken',
       account: 'Bank Account',
       paymentMode: 'Net Banking',
-      description: loan.type === 'given' ? `Principal lent to ${loan.person}` : `Principal borrowed from ${loan.person}`,
+      description: loan.type === 'given' 
+        ? `Principal lent by ${loan.familyMember || 'Self'} to ${loan.person}` 
+        : `Principal borrowed by ${loan.familyMember || 'Self'} from ${loan.person}`,
       amount: loan.amount,
       type: loan.type === 'given' ? 'expense' : 'income'
     });
@@ -804,6 +808,7 @@ export const FinancialProvider: React.FC<{ children: React.ReactNode }> = ({ chi
 
     let loanPerson = '';
     let loanType: 'given' | 'taken' = 'given';
+    let loanFamilyMember: string | undefined = '';
     let isFullySettled = false;
 
     setLoans((prevLoans) => {
@@ -811,6 +816,7 @@ export const FinancialProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         if (loan.id === loanId) {
           loanPerson = loan.person;
           loanType = loan.type;
+          loanFamilyMember = loan.familyMember;
           
           const updatedInsts = [...loan.installments, newInst];
           const totalPaid = updatedInsts.reduce((sum, inst) => sum + inst.amount, 0);
@@ -829,9 +835,10 @@ export const FinancialProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     });
 
     // Record payment details in ledger
+    const assocRepayPerson = loanFamilyMember && loanFamilyMember !== 'Self' ? loanFamilyMember : loanPerson;
     addTransaction({
       date: installment.date,
-      person: loanPerson,
+      person: assocRepayPerson,
       category: loanType === 'given' ? 'Loan Repaid (Recd)' : 'Loan Paid Back',
       account: installment.method,
       paymentMode: 'Net Banking',
