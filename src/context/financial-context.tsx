@@ -39,6 +39,7 @@ export interface LoanInstallment {
   date: string;
   method: string;
   notes: string;
+  familyMember?: string;
 }
 
 export interface Loan {
@@ -855,7 +856,9 @@ export const FinancialProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     });
 
     // Record payment details in ledger
-    const assocRepayPerson = loanFamilyMember && loanFamilyMember !== 'Self' ? loanFamilyMember : loanPerson;
+    const assocRepayPerson = installment.familyMember && installment.familyMember !== 'Self' 
+      ? installment.familyMember 
+      : (loanFamilyMember && loanFamilyMember !== 'Self' ? loanFamilyMember : loanPerson);
     addTransaction({
       date: installment.date,
       person: assocRepayPerson,

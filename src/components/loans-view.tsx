@@ -31,6 +31,7 @@ export default function LoansView() {
     setIsLoanOpen, 
     setEditingLoan,
     accounts, 
+    family,
     formatCurrency 
   } = useFinancials();
   const [filter, setFilter] = useState<'all' | 'given' | 'taken' | 'pending'>('all');
@@ -44,6 +45,7 @@ export default function LoansView() {
   const [repayDate, setRepayDate] = useState(new Date().toISOString().split('T')[0]);
   const [repayAccount, setRepayAccount] = useState('Bank Account');
   const [repayNotes, setRepayNotes] = useState('');
+  const [repayFamilyMember, setRepayFamilyMember] = useState('Self');
 
   // Calculations
   const calculateLoanStats = (loan: Loan) => {
@@ -88,6 +90,7 @@ export default function LoansView() {
     setRepayAmount(remaining.toString());
     setRepayNotes('');
     setRepayDate(new Date().toISOString().split('T')[0]);
+    setRepayFamilyMember('Self');
   };
 
   const handleRepaySubmit = () => {
@@ -107,11 +110,13 @@ export default function LoansView() {
       amount: Number(repayAmount),
       date: repayDate,
       method: repayAccount,
-      notes: repayNotes
+      notes: repayNotes,
+      familyMember: repayFamilyMember
     });
 
     // Close Modal
     setActiveRepayLoan(null);
+    setRepayFamilyMember('Self');
   };
 
   return (
@@ -419,6 +424,18 @@ export default function LoansView() {
                       {accounts.map(acc => <option key={acc.id} value={acc.name}>{acc.name}</option>)}
                     </select>
                   </div>
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-[10px] uppercase font-bold text-slate-450">Family Member Beneficiary (Paid By/To)</label>
+                  <select 
+                    value={repayFamilyMember} 
+                    onChange={(e) => setRepayFamilyMember(e.target.value)} 
+                    className="w-full glass-input bg-transparent"
+                  >
+                    <option value="Self">Self (General Household)</option>
+                    {family.map(f => <option key={f.id} value={f.name}>{f.name}</option>)}
+                  </select>
                 </div>
 
                 <div className="space-y-1">
