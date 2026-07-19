@@ -209,7 +209,7 @@ export default function QuickActionModals() {
       type: 'transfer' as const,
       fromAccount: isInternal ? 'Internal' : trSource,
       toAccount: isRecipientAdmin ? trDest : undefined,
-      toPerson: !isRecipientAdmin ? transferToPerson : undefined,
+      toPerson: transferToPerson,
       fromPocket: trFromPocket,
       toPocket: trToPocket
     };
