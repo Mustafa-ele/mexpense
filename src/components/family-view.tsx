@@ -320,20 +320,25 @@ export default function FamilyView() {
                       </td>
                     </tr>
                   ) : (
-                    memberTransactions.map((tx) => (
-                      <tr key={tx.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-900/10">
-                        <td className="py-3 px-3 text-slate-400">{tx.date}</td>
-                        <td className="py-3 px-3 font-semibold flex items-center gap-1.5">
-                          <Receipt size={12} className="text-slate-450" />
-                          <span>{tx.description}</span>
-                        </td>
-                        <td className="py-3 px-3">{tx.category}</td>
-                        <td className="py-3 px-3 font-medium">{tx.account}</td>
-                        <td className={`py-3 px-3 font-bold text-sm font-sans ${tx.type === 'income' ? 'text-emerald-600 dark:text-emerald-450' : 'text-rose-600 dark:text-rose-455'}`}>
-                          {tx.type === 'income' ? '+' : '-'}{formatCurrency(tx.amount)}
-                        </td>
-                      </tr>
-                    ))
+                    memberTransactions.map((tx) => {
+                      const isIncoming = tx.type === 'income' || (tx.type === 'transfer' && tx.toPerson === selectedMember);
+                      const isOutgoing = tx.type === 'expense' || (tx.type === 'transfer' && (tx.person === selectedMember || (selectedMember.toLowerCase() === 'murtaza' && tx.person === 'Self')) && tx.toPerson !== selectedMember);
+
+                      return (
+                        <tr key={tx.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-900/10">
+                          <td className="py-3 px-3 text-slate-400">{tx.date}</td>
+                          <td className="py-3 px-3 font-semibold flex items-center gap-1.5">
+                            <Receipt size={12} className="text-slate-450" />
+                            <span>{tx.description}</span>
+                          </td>
+                          <td className="py-3 px-3">{tx.category}</td>
+                          <td className="py-3 px-3 font-medium">{tx.account}</td>
+                          <td className={`py-3 px-3 font-bold text-sm font-sans ${isIncoming ? 'text-emerald-600 dark:text-emerald-450' : isOutgoing ? 'text-rose-600 dark:text-rose-455' : 'text-blue-600 dark:text-blue-400'}`}>
+                            {isIncoming ? '+' : isOutgoing ? '-' : ''}{formatCurrency(tx.amount)}
+                          </td>
+                        </tr>
+                      );
+                    })
                   )}
                 </tbody>
               </table>
